@@ -1,5 +1,6 @@
 A feature is considered ‘Done’ when:
 
+- all defined acceptance criteria are fulfilled
 - the code runs without errors and no known critical bugs exist
 - code follows the defined coding standards and passes linting/formatting checks
 - a code review has been carried out and approved
