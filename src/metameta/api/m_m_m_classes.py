@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 # Abstract base class
 # ---------------------------------------------------------------------------
 
+
 class MetaElement(ABC):
     """Base class for all elements of the Meta-Meta-Model."""
     @abstractmethod
@@ -16,6 +17,7 @@ class MetaElement(ABC):
 # ---------------------------------------------------------------------------
 # METACLASS Enumeration
 # ---------------------------------------------------------------------------
+
 
 @dataclass(eq=True)
 class MetaEnum(MetaElement):
@@ -30,9 +32,11 @@ class MetaEnum(MetaElement):
         if len(self.values) != len(set(self.values)):
             raise ValueError(f"The MetaEnum '{self.name}' has duplicate values.")
 
+
 # ---------------------------------------------------------------------------
 # METACLASS Core Elements
 # ---------------------------------------------------------------------------
+
 
 @dataclass(eq=True)
 class Attribute(MetaElement):
@@ -40,10 +44,12 @@ class Attribute(MetaElement):
     name                : str
     multiplicity        : MetaEnum
     type                : MetaEnum
-
+    # TODO Discuss in the group and possibly add. 
+    # default_value       : str | None
     def validate(self) -> None:
         if not self.name or self.name.strip() == "":
             raise ValueError("The Attribute must have a non-empty name.")
+
 
 @dataclass(eq=True)
 class Association(MetaElement):
@@ -56,6 +62,7 @@ class Association(MetaElement):
     def validate(self) -> None:
         if not self.name or self.name.strip() == "":
             raise ValueError("The Association must have a non-empty name.")
+
 
 @dataclass(eq=True)
 class OpenReference(MetaElement):
@@ -73,6 +80,7 @@ class OpenReference(MetaElement):
 # ---------------------------------------------------------------------------
 # METACLASS Class
 # ---------------------------------------------------------------------------
+
 
 @dataclass(eq=True)
 class MetaClass(MetaElement):
@@ -100,6 +108,7 @@ class MetaClass(MetaElement):
             raise ValueError(f"The association with the name {association.name}" +
                 f"already exists in the MetaClass {self.name}")
         self.associations.append(association)
+
 
 # ---------------------------------------------------------------------------
 # MetaModel
@@ -134,3 +143,6 @@ class MetaModel(MetaElement):
             raise ValueError(f"The Enum with the name {enum.name}" +
                 f"already exists in the MetaClass {self.name}")
         self.enums.append(enum)
+
+
+# TODO FUnktionen im MetaMetamodel

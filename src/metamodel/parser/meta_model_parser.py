@@ -126,7 +126,7 @@ def _build_classes(
 
             case None:
                 pass
-
+       
     return clazz
 
 
@@ -139,6 +139,7 @@ def _classify_field(name: str, field_def: dict[str, any]) -> Attribute | Associa
       Association-> {"type": {<ClassName>: {...}}, "multiplicity": <str>}
     """
     multiplicity = field_def.get("multiplicity")
+    value = field_def.get("value")
     type_val     = field_def.get("type")
 
     match type_val:
