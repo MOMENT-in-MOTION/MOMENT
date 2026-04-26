@@ -89,7 +89,6 @@ class MetaClass(MetaElement):
     name            : str
     attributes      : list[Attribute]   = field(default_factory=list)
     associations    : list[Association] = field(default_factory=list)
-    enums           : list[MetaEnum]    = field(default_factory=list)
 
     def validate(self) -> None:
         if not self.name or self.name.strip() == "":
@@ -98,8 +97,6 @@ class MetaClass(MetaElement):
             attribute.validate()
         for association in self.associations:
             association.validate()
-        for enum in self.enums:
-            enum.validate()
 
     def add_attribute(self, attribute: Attribute) -> None:
         if any(a.name == attribute.name for a in self.attributes):
@@ -111,11 +108,6 @@ class MetaClass(MetaElement):
             raise ValueError(f"The association with the name {association.name} already exists in the MetaClass {self.name}")
         self.associations.append(association)
 
-    def add_enum(self, enum: MetaEnum) -> None:
-        if any (e.name == enum.name for e in self.enums):
-            raise ValueError(f"The Enum with the name {enum.name} already exists in the MetaClass {self.name}")
-        self.enums.append(enum)
-
 # ---------------------------------------------------------------------------
 # Meta-MetaModel
 # ---------------------------------------------------------------------------
@@ -125,10 +117,14 @@ class MetaClass(MetaElement):
 class MetaMetaModel(MetaElement):
     name    : str                = field(default="root", init=False)
     classes : list[MetaClass]    = field(default_factory=list)
+    enums           : list[MetaEnum]    = field(default_factory=list)
 
     def validate(self) -> None:
         for cls in self.classes:
             cls.validate()
+        
+        for enum in self.enums:
+            enum.validate()
 
         if not self.name or self.name.strip() == "":
             raise ValueError("The MetaMetaModel must have a non-empty name.")
@@ -139,9 +135,7 @@ class MetaMetaModel(MetaElement):
             raise ValueError(f"A metaclass with the name {cls.name} already exists in the MetaMetaModel {self.name}")
         self.classes.append(cls)
 
-
-
-    
-
-
-
+    def add_enum(self, enum: MetaEnum) -> None:
+        if any (e.name == enum.name for e in self.enums):
+            raise ValueError(f"The Enum with the name {enum.name} already exists in the MetaClass {self.name}")
+        self.enums.append(enum)
