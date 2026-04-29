@@ -63,6 +63,7 @@ class Attribute(MetaElement):
     name                : str
     multiplicity        : MultiplicityOptions
     type                : TypeOptions
+    value               : str
 
     def validate(self) -> None:
         if not self.name or self.name.strip() == "":
@@ -80,6 +81,17 @@ class Association(MetaElement):
             raise ValueError("The Association must have a non-empty name.")
         self.associationTarget.validate()
 
+@dataclass(eq=True)
+class OpenReference(MetaElement):
+    associationOrigin   : MetaClass
+    name                : str   
+    multiplicity        : MultiplicityOptions
+    association         : AssociationOptions
+    associationTarget   : str
+
+    def validate(self) -> None:
+        if not self.name or self.name.strip() == "":
+            raise ValueError("The Association must have a non-empty name.")
 # ---------------------------------------------------------------------------
 # METACLASS Class
 # ---------------------------------------------------------------------------
