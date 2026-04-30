@@ -8,8 +8,7 @@ from enum import Enum, auto
 # Enumerations
 # ---------------------------------------------------------------------------
 
-class MultiplicityOptions(Enum):
-    """Defines the multiplicity options for attributes and associations."""
+""" class MultiplicityOptions(Enum):
     OPTIONAL        = auto()
     ONE             = auto()
     AT_LEAST_ONE    = auto()
@@ -17,16 +16,14 @@ class MultiplicityOptions(Enum):
 
 
 class AssociationOptions(Enum):
-    """Defines the types of associations between classes."""
     COMPOSITION     = auto()
     REFERENCE       = auto()
 
 
 class TypeOptions(Enum):
-    """Defines primitive datatypes for attributes.""" 
     INT             = auto()
     BOOL            = auto()
-    STRING          = auto()
+    STRING          = auto() """
 
 # ---------------------------------------------------------------------------
 # Abstract base class
@@ -61,8 +58,8 @@ class MetaEnum(MetaElement):
 @dataclass(eq=True)
 class Attribute(MetaElement):
     name                : str
-    multiplicity        : MultiplicityOptions
-    type                : TypeOptions
+    multiplicity        : MetaEnum
+    type                : MetaEnum
 
     def validate(self) -> None:
         if not self.name or self.name.strip() == "":
@@ -71,15 +68,15 @@ class Attribute(MetaElement):
 @dataclass(eq=True)
 class Association(MetaElement):
     name                : str   
-    multiplicity        : MultiplicityOptions
-    association         : AssociationOptions
+    multiplicity        : MetaEnum
+    association         : MetaEnum
     associationTarget   : MetaClass
 
     def validate(self) -> None:
         if not self.name or self.name.strip() == "":
             raise ValueError("The Association must have a non-empty name.")
         self.associationTarget.validate()
-
+        
 # ---------------------------------------------------------------------------
 # METACLASS Class
 # ---------------------------------------------------------------------------
@@ -109,15 +106,15 @@ class MetaClass(MetaElement):
         self.associations.append(association)
 
 # ---------------------------------------------------------------------------
-# Meta-MetaModel
+# MetaModel
 # ---------------------------------------------------------------------------
 
 
 @dataclass(eq=True)
-class MetaMetaModel(MetaElement):
+class MetaModel(MetaElement):
     name    : str                = field(default="root", init=False)
     classes : list[MetaClass]    = field(default_factory=list)
-    enums           : list[MetaEnum]    = field(default_factory=list)
+    enums   : list[MetaEnum]    = field(default_factory=list)
 
     def validate(self) -> None:
         for cls in self.classes:

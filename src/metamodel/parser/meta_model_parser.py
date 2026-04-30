@@ -5,11 +5,17 @@ CLASSES: dict[str, MetaClass] = {}
 ENUMS: dict[str, MetaEnum] = {}
 
 
-def parse_meta_model(meta_model_dict: dict[str, str]) -> MetaMetaModel:
+MULTIPLICITY_OPTIONS : MetaEnum = MetaEnum(name="MultiplicityOptions", values=["ONE", "AT_LEAST_ONE", "ANY", "ZERO_OR_ONE", "OPTIONAL"])
+ASSOCIATION_OPTIONS  : MetaEnum = MetaEnum(name="AssociationOptions", values=["COMPOSITION", "REFERENCE"])
+TYPE_OPTIONS         : MetaEnum = MetaEnum(name="TypeOptions", values=["INT", "BOOL", "STRING"])
+
+
+def parse_meta_model(meta_model_dict: dict[str, str]) -> MetaModel:
     """
-    Entry point for the parser builds a MetaMetaModel from the given dict.
+    Entry point for the parser builds a MetaModel from the given dict.
     """
-    root = MetaMetaModel()
+
+    root = MetaModel()
 
     for class_name, body in meta_model_dict.items():
         if body.__class__ == list:
@@ -46,8 +52,8 @@ def _build_classes(
                 target_cls = _build_classes(target_name, target_body)
                 clazz.add_association(Association(
                     name=name,
-                    multiplicity=getattr(MultiplicityOptions, multiplicity).name,
-                    association=AssociationOptions.COMPOSITION,
+                    multiplicity=_test_enum_value(MULTIPLICITY_OPTIONS, multiplicity),
+                    association=_test_enum_value(ASSOCIATION_OPTIONS, "COMPOSITION"),
                     associationTarget=target_cls,
                 ))
             
@@ -59,8 +65,8 @@ def _build_classes(
 
                 clazz.add_association(Association(
                     name=name,
-                    multiplicity=getattr(MultiplicityOptions, multiplicity).name,
-                    association=AssociationOptions.REFERENCE,
+                    multiplicity=_test_enum_value(MULTIPLICITY_OPTIONS, multiplicity),
+                    association=_test_enum_value(ASSOCIATION_OPTIONS, "REFERENCE"),
                     associationTarget=target_cls,
                 ))
 
@@ -83,13 +89,13 @@ def _classify_field(name: str, field_def: dict[str, any]) -> Attribute | Associa
 
     match type_val:
         case str():
-            if type_val not in TypeOptions.__members__:
+            if type_val not in TYPE_OPTIONS.values:
                 return ("ref_association", name, multiplicity, type_val)
 
             return Attribute(
                 name=name,
-                multiplicity=getattr(MultiplicityOptions, multiplicity).name,
-                type=getattr(TypeOptions, type_val).name,
+                multiplicity=_test_enum_value(MULTIPLICITY_OPTIONS, multiplicity),
+                type=_test_enum_value(TYPE_OPTIONS, type_val),
             )
         case {**nested} if nested:
             target_name, target_body = next(iter(nested.items()))
@@ -110,3 +116,11 @@ def _build_enums(
     enum.values = enum_body
 
     return enum
+
+def _test_enum_value(meta_enum : MetaEnum, value : str):
+    if value not in meta_enum.values:
+        raise ValueError(
+            f"'{value}' ist kein gültiger Wert für {meta_enum.name}. "
+            f"Erlaubt: {meta_enum.values}"
+        )
+    return value
