@@ -1,0 +1,97 @@
+{
+  "Status": ["OPEN", "IN_PROGRESS", "DONE"],
+  
+  "Person": {
+    "name": {
+      "type": "STRING",
+      "multiplicity": "ONE"
+    },
+    "age": {
+      "type": "INT"
+    },
+    "isActive": {
+      "type": "BOOL",
+      "multiplicity": "OPTIONAL"
+    },
+    "address": {
+      "type": {
+        "Address": {
+          "street": {
+            "type": "STRING",
+            "multiplicity": "ONE"
+          },
+          "city": {
+            "type": "STRING",
+            "multiplicity": "ONE"
+          },
+          "zipCode": {
+            "type": "INT",
+            "multiplicity": "ZERO_OR_ONE"
+          }
+        }
+      },
+      "multiplicity": "ONE"
+    },
+    "projects": {
+      "type": "REFERENCE",
+      "target": "Project",
+      "multiplicity": "ANY"
+    },
+    "manager": {
+      "type": "REFERENCE",
+      "target": "Person",
+      "multiplicity": "ZERO_OR_ONE"
+    }
+  },
+  
+  "Project": {
+    "title": {
+      "type": "STRING",
+      "multiplicity": "ONE"
+    },
+    "priority": {
+      "type": "INT",
+      "value": 1
+    },
+    "status": {
+      "type": "REFERENCE",
+      "target": "Status",
+      "multiplicity": "ONE"
+    },
+    "tasks": {
+      "type": {
+        "Task": {
+          "description": {
+            "type": "STRING",
+            "multiplicity": "ONE"
+          },
+          "estimatedHours": {
+            "type": "INT",
+            "multiplicity": "ZERO_OR_ONE"
+          },
+          "completed": {
+            "type": "BOOL",
+            "multiplicity": "ONE"
+          }
+        }
+      },
+      "multiplicity": "ANY"
+    }
+  },
+  
+  "Department": {
+    "name": {
+      "type": "STRING",
+      "multiplicity": "ONE"
+    },
+    "budget": {
+      "type": "INT",
+      "multiplicity": "AT_LEAST_ONE"
+    },
+    "employees": {
+      "type": "REFERENCE",
+      "target": "Person",
+      "multiplicity": "ANY"
+    }
+  }
+}
