@@ -69,6 +69,9 @@ def apply_multiplicity(multiplicity: str, type_option: str) -> str:
         case "OPTIONAL":
             is_list = False
             is_optional = True
+        case None:
+            is_list = True
+            is_optional = False
         case _:
             raise TypeError(
                 f"The multiplicity: {multiplicity} could not be matched to one of the MetaEnums "

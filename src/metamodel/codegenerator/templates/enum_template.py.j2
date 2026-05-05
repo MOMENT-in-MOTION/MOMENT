@@ -1,0 +1,16 @@
+{% extends "base_template.py.j2" %}
+
+{% block imports %}
+from enum import Enum
+{% endblock %}
+
+{% block body %}
+{% for enum in enums %}
+class {{ enum.enum_name }}(Enum):
+    {% for o in enum.options %}
+    {{ o }} = "{{ o }}"
+    {% endfor %}
+
+
+{% endfor %}
+{% endblock %}
