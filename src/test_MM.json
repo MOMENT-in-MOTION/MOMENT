@@ -7,7 +7,8 @@
       "multiplicity": "ONE"
     },
     "age": {
-      "type": "INT"
+      "type": "INT",
+      "multiplicity": "ONE"
     },
     "isActive": {
       "type": "BOOL",
@@ -51,7 +52,7 @@
     },
     "priority": {
       "type": "INT",
-      "value": 1
+      "multiplicity": "ONE"
     },
     "status": {
       "type": "REFERENCE",

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from metamodel.parser import parse_meta_model
 from shared.load_json_as_dict import load_json_as_dict
+from metamodel.codegenerator.mapper import create_view
 
 def main():
     "Entry point for the application."
@@ -29,6 +30,7 @@ def main():
     meta_model = parse_meta_model(meta_model_dict=meta_model_dict)
 
     print(meta_model)
+    print(create_view(meta_model))
 
 if __name__ == "__main__":
     main()
