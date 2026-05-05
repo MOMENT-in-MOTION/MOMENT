@@ -97,7 +97,7 @@ def _build_classes(
 
             case None:
                 pass
-       
+
     return clazz
 
 

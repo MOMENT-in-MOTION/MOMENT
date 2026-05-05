@@ -1,0 +1,31 @@
+name: Lint
+ 
+on:
+  pull_request:
+    branches: ["**"]
+ 
+jobs:
+  pylint:
+    runs-on: ubuntu-latest
+ 
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+ 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+ 
+      - name: Install dependencies
+        run: |
+          pip install pylint
+ 
+      - name: Run pylint
+        run: |
+          files=$(git ls-files '*.py')
+          if [ -z "$files" ]; then
+            echo "No Python files found skipping pylint."
+          else
+            pylint $files
+          fi

@@ -1,0 +1,171 @@
+[MASTER]
+# Use multiple processes to speed up Pylint
+jobs=1
+
+# Add files or directories to the ignore list (comma-separated)
+ignore=CVS,.git,__pycache__,.venv,venv,migrations
+
+# Files or directories matching the regex patterns are skipped
+ignore-patterns=.*\.pyc,.*\.pyi
+
+
+[MESSAGES CONTROL]
+# Disable specific warnings that are often too noisy or project-specific
+disable=
+    missing-function-docstring,
+    missing-module-docstring,
+    too-few-public-methods,
+    too-many-arguments,
+    too-many-instance-attributes,
+    too-many-locals,
+    too-many-branches,
+    too-many-statements,
+    fixme,
+    broad-except,
+    logging-fstring-interpolation
+
+# Enable specific checkers
+enable=
+    useless-suppression,
+    deprecated-pragma
+
+
+[REPORTS]
+# Set the output format
+output-format=text
+
+# Activate the evaluation score
+score=yes
+
+
+[REFACTORING]
+# Maximum number of nested blocks for a function/method body
+max-nested-blocks=7
+
+# Complete name of functions that never return
+never-returning-functions=sys.exit,argparse.parse_error
+
+
+[FORMAT]
+# Maximum number of characters on a single line
+max-line-length=100
+
+# Allow the body of an if/while/for to be on the same line
+single-line-if-stmt=no
+
+# String used as indentation unit
+indent-string='    '
+
+# Number of spaces of indent required for a hanging or continued line
+indent-after-paren=4
+
+# Expected format of line ending
+expected-line-ending-format=LF
+
+
+[BASIC]
+# Good variable names which should always be accepted
+good-names=i,j,k,ex,e,_,id,pk,db,f,x,y,n,T
+
+# Minimum line length for functions/classes that require docstrings
+docstring-min-length=-1
+
+# Naming convention (snake_case for functions/variables, PascalCase for classes)
+argument-naming-style=snake_case
+attr-naming-style=snake_case
+class-naming-style=PascalCase
+class-attribute-naming-style=any
+function-naming-style=snake_case
+method-naming-style=snake_case
+module-naming-style=snake_case
+variable-naming-style=snake_case
+const-naming-style=UPPER_CASE
+
+
+[SIMILARITIES]
+# Minimum lines number of a similarity
+min-similarity-lines=6
+
+# Ignore comments when computing similarities
+ignore-comments=yes
+
+# Ignore docstrings when computing similarities
+ignore-docstrings=yes
+
+# Ignore imports when computing similarities
+ignore-imports=yes
+
+
+[SPELLING]
+# Limits count of auto-corrections
+max-spelling-suggestions=4
+
+
+[TYPECHECK]
+# List of decorators that produce context managers
+contextmanager-decorators=contextlib.contextmanager
+
+# Tells whether missing members accessed in mixin class should be ignored
+ignore-mixin-members=yes
+
+# List of classes names for which member attributes should not be checked
+ignored-classes=optparse.Values,thread._local,_thread._local,SQLObject,scoped_session
+
+
+[VARIABLES]
+# Tells whether we should check for unused import in __init__ files
+init-import=no
+
+# A regular expression matching the name of dummy variables
+dummy-variables-rgx=_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+$)|dummy|^ignored_|^unused_
+
+# List of additional names supposed to be defined in builtins
+additional-builtins=
+
+
+[CLASSES]
+# List of method names used to declare (i.e. assign) instance attributes
+defining-attr-methods=__init__,__new__,setUp,__post_init__
+
+# List of valid names for the first argument in a class method
+valid-classmethod-first-arg=cls
+
+# List of valid names for the first argument in a metaclass class method
+valid-metaclass-classmethod-first-arg=cls
+
+
+[DESIGN]
+# Maximum number of arguments for function / method
+max-args=7
+
+# Maximum number of attributes for a class (see R0902)
+max-attributes=10
+
+# Maximum number of boolean expressions in an if statement
+max-bool-expr=5
+
+# Maximum number of branch for function / method body
+max-branches=12
+
+# Maximum number of locals for function / method body
+max-locals=20
+
+# Maximum number of parents for a class (see R0901)
+max-parents=7
+
+# Maximum number of public methods for a class (see R0904)
+max-public-methods=20
+
+# Maximum number of return / yield for function / method body
+max-returns=6
+
+# Maximum number of statements in function / method body
+max-statements=50
+
+# Minimum number of public methods for a class (see R0903)
+min-public-methods=2
+
+
+[EXCEPTIONS]
+# Exceptions that will emit a warning when being caught
+overgeneral-exceptions=builtins.BaseException,builtins.Exception
