@@ -30,7 +30,7 @@ def main():
 
     print(f"Successfully loaded metamodel: {path}")
 
-    meta_model = parse_meta_model(meta_model_dict=meta_model_dict)
+    meta_model = parse_meta_model(meta_model_dict=meta_model_dict, verbose=True)
 
     print(meta_model)
 

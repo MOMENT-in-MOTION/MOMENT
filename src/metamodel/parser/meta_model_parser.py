@@ -1,32 +1,42 @@
+import logging
 from metameta.api.m_m_m_classes import (
     MetaClass,
     MetaEnum,
     MetaModel,
     Association,
     Attribute,
-    OpenReference
+    OpenReference,
 )
 
-
+logger = logging.getLogger(__name__)
 CLASSES: dict[str, MetaClass] = {}
 ENUMS: dict[str, MetaEnum] = {}
 
 
 MULTIPLICITY_OPTIONS: MetaEnum = MetaEnum(
     name="MultiplicityOptions",
-    values=["ONE", "AT_LEAST_ONE", "ANY", "ZERO_OR_ONE", "OPTIONAL"]
+    values=["ONE", "AT_LEAST_ONE", "ANY", "ZERO_OR_ONE", "OPTIONAL"],
 )
 ASSOCIATION_OPTIONS: MetaEnum = MetaEnum(
-    name="AssociationOptions",
-    values=["COMPOSITION", "REFERENCE"]
+    name="AssociationOptions", values=["COMPOSITION", "REFERENCE"]
 )
 TYPE_OPTIONS: MetaEnum = MetaEnum(name="TypeOptions", values=["INT", "BOOL", "STRING"])
 
 
-def parse_meta_model(meta_model_dict: dict[str, str]) -> MetaModel:
+def parse_meta_model(meta_model_dict: dict[str, str], verbose: bool=False) -> MetaModel:
     """
     Entry point for the parser builds a MetaModel from the given dict.
     """
+    logging.basicConfig(
+        format="%(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler()],
+    )
+    if verbose:
+        logger.setLevel(logging.DEBUG)
+        logger.debug("Verbose mode enabled. Logging set to DEBUG level.")
+    if not verbose:
+        logger.setLevel(logging.INFO)
+        logger.info("Verbose mode disabled. Logging set to INFO level.")
     root = MetaModel()
 
     open_references: list[OpenReference] = []
@@ -48,10 +58,13 @@ def parse_meta_model(meta_model_dict: dict[str, str]) -> MetaModel:
     root.validate()
     return root
 
+
 def _resolve_open_references(open_refs: list[OpenReference]) -> None:
     for open_ref in open_refs:
-        print(f"Resolving open reference: {open_ref.association_target}" +
-            f"in association {open_ref.name} of class {open_ref.association_origin.name}")
+        logger.info(
+            f"Resolving open reference: {open_ref.association_target}"
+            + f"in association {open_ref.name} of class {open_ref.association_origin.name}"
+        )
 
         if open_ref.association_target in CLASSES:
             target_cls = CLASSES[open_ref.association_target]
@@ -60,17 +73,18 @@ def _resolve_open_references(open_refs: list[OpenReference]) -> None:
         else:
             continue
 
-        open_ref.association_origin.add_association(Association(
-            name=open_ref.name,
-            multiplicity=open_ref.multiplicity,
-            association=open_ref.association,
-            association_target=target_cls,
-        ))
+        open_ref.association_origin.add_association(
+            Association(
+                name=open_ref.name,
+                multiplicity=open_ref.multiplicity,
+                association=open_ref.association,
+                association_target=target_cls,
+            )
+        )
+
 
 def _build_classes(
-    class_name: str,
-    class_body: dict,
-    open_references: list[OpenReference]
+    class_name: str, class_body: dict, open_references: list[OpenReference]
 ) -> MetaClass:
     """Recursively build a MetaClass and any classes it references."""
 
@@ -78,27 +92,37 @@ def _build_classes(
     CLASSES[class_name] = clazz
 
     for field_name, field_body in class_body.items():
-        print(f"Parsing field: {field_name} with body: {field_body}")
+        logger.info(f"Parsing field: {field_name} with body: {field_body}")
 
+        logger.debug(f"Classifying field {field_name} in class {class_name}: {_classify_field(field_name, field_body)}")
         match _classify_field(field_name, field_body):
 
             case Attribute() as attr:
+                logger.debug(f"Is attribute for {field_name} with type {attr.type} and multiplicity {attr.multiplicity}")
                 clazz.add_attribute(attr)
 
             case ("comp_association", name, multiplicity, target_name, target_body):
+                logger.debug(f"Is composition association for {name} with target {target_name} and multiplicity {multiplicity}")
                 target_cls = _build_classes(target_name, target_body, open_references)
+
+                logger.debug(f"Building association for {name} with target {target_name} and multiplicity {multiplicity}")
 
                 default = "ANY" if not multiplicity else multiplicity
                 multi = _test_enum_value(MULTIPLICITY_OPTIONS, default)
 
-                clazz.add_association(Association(
-                    name=name,
-                    multiplicity=multi,
-                    association=_test_enum_value(ASSOCIATION_OPTIONS, "COMPOSITION"),
-                    association_target=target_cls,
-                ))
+                clazz.add_association(
+                    Association(
+                        name=name,
+                        multiplicity=multi,
+                        association=_test_enum_value(
+                            ASSOCIATION_OPTIONS, "COMPOSITION"
+                        ),
+                        association_target=target_cls,
+                    )
+                )
 
             case ("ref_association", name, multiplicity, target_name):
+                logger.debug(f"Is reference association for {name} with target {target_name} and multiplicity {multiplicity}")
                 default = "ANY" if not multiplicity else multiplicity
                 multi = _test_enum_value(MULTIPLICITY_OPTIONS, default)
 
@@ -112,28 +136,36 @@ def _build_classes(
                             association_origin=clazz,
                             name=name,
                             multiplicity=multi,
-                            association=_test_enum_value(ASSOCIATION_OPTIONS, "REFERENCE"),
-                            association_target=target_name)
+                            association=_test_enum_value(
+                                ASSOCIATION_OPTIONS, "REFERENCE"
+                            ),
+                            association_target=target_name,
                         )
+                    )
+                    logger.debug(f"Appended open reference for {name} with target {target_name}")
                     continue
 
-                clazz.add_association(Association(
-                    name=name,
-                    multiplicity=multi,
-                    association=_test_enum_value(ASSOCIATION_OPTIONS, "REFERENCE"),
-                    association_target=target_cls,
-                ))
+                clazz.add_association(
+                    Association(
+                        name=name,
+                        multiplicity=multi,
+                        association=_test_enum_value(ASSOCIATION_OPTIONS, "REFERENCE"),
+                        association_target=target_cls,
+                    )
+                )
 
             case None:
-                pass
+                logger.debug(f"Field {field_name} is neither an attribute nor an association.")
 
     return clazz
 
 
-def _classify_field(name: str, field_def: dict[str, any]) -> Attribute | Association | None:
+def _classify_field(
+    name: str, field_def: dict[str, any]
+) -> Attribute | Association | None:
     """
     Parse the field and return the matching MetaElement, either a Attribute or Association.
-    
+
     Patterns:
       Attribute  -> {"type": <str>,  "multiplicity": <str>} | {"type": <str>, "value": <str>}
       Association-> {"type": {<ClassName>: {...}}, "multiplicity": <str>}
@@ -154,11 +186,14 @@ def _classify_field(name: str, field_def: dict[str, any]) -> Attribute | Associa
                 return ("ref_association", name, multiplicity, type_val)
 
             return Attribute(
-                #TODO Potentially make Attribute have optional Multiplicity,
-                #so that we don't end up wit None fields in the object.
+                # TODO Potentially make Attribute have optional Multiplicity,
+                # so that we don't end up wit None fields in the object.
                 name=name,
-                multiplicity=_test_enum_value(MULTIPLICITY_OPTIONS, multiplicity)
-                    if multiplicity else None,
+                multiplicity=(
+                    _test_enum_value(MULTIPLICITY_OPTIONS, multiplicity)
+                    if multiplicity
+                    else _test_enum_value(MULTIPLICITY_OPTIONS, "ONE")
+                ),
                 type=_test_enum_value(TYPE_OPTIONS, type_val),
                 default_value=value
             )
@@ -183,7 +218,7 @@ def _build_enums(
     return enum
 
 
-def _test_enum_value(meta_enum : MetaEnum, value : str):
+def _test_enum_value(meta_enum: MetaEnum, value: str):
     if value not in meta_enum.values:
         raise ValueError(
             f"'{value}' ist kein gültiger Wert für {meta_enum.name}. "
