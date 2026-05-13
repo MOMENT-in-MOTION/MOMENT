@@ -2,6 +2,7 @@ import logging
 from metameta.api.m_m_m_classes import (
     MetaClass,
     MetaEnum,
+    MetaEnumLiteral,
     MetaModel,
     Association,
     Attribute,
@@ -15,12 +16,25 @@ ENUMS: dict[str, MetaEnum] = {}
 
 MULTIPLICITY_OPTIONS: MetaEnum = MetaEnum(
     name="MultiplicityOptions",
-    values=["ONE", "AT_LEAST_ONE", "ANY", "ZERO_OR_ONE", "OPTIONAL"],
+    values=[
+        MetaEnumLiteral(name="ONE", value="ONE"),
+        MetaEnumLiteral(name="AT_LEAST_ONE", value="AT_LEAST_ONE"),
+        MetaEnumLiteral(name="ANY", value="ANY"),
+        MetaEnumLiteral(name="ZERO_OR_ONE", value="ZERO_OR_ONE"), # Redundant with "OPTIONAL", but may be useful for readability in some cases.
+        MetaEnumLiteral(name="OPTIONAL", value="OPTIONAL")
+    ],
 )
 ASSOCIATION_OPTIONS: MetaEnum = MetaEnum(
-    name="AssociationOptions", values=["COMPOSITION", "REFERENCE"]
+    name="AssociationOptions", values=[
+        MetaEnumLiteral(name="COMPOSITION", value="COMPOSITION"),
+        MetaEnumLiteral(name="REFERENCE", value="REFERENCE")
+    ]
 )
-TYPE_OPTIONS: MetaEnum = MetaEnum(name="TypeOptions", values=["INT", "BOOL", "STRING"])
+TYPE_OPTIONS: MetaEnum = MetaEnum(name="TypeOptions", values=[
+    MetaEnumLiteral(name="INT", value="int"),
+    MetaEnumLiteral(name="BOOL", value="bool"),
+    MetaEnumLiteral(name="STRING", value="str")
+])
 
 
 def parse_meta_model(meta_model_dict: dict[str, str], verbose: bool=False) -> MetaModel:
@@ -58,6 +72,7 @@ def parse_meta_model(meta_model_dict: dict[str, str], verbose: bool=False) -> Me
     root.validate()
     return root
 
+_
 
 def _resolve_open_references(open_refs: list[OpenReference]) -> None:
     for open_ref in open_refs:
@@ -98,7 +113,7 @@ def _build_classes(
         match _classify_field(field_name, field_body):
 
             case Attribute() as attr:
-                logger.debug(f"Is attribute for {field_name} with type {attr.type} and multiplicity {attr.multiplicity}")
+                logger.debug(f"Is attribute for {field_name} with type {attr.attribute_type} and multiplicity {attr.multiplicity}")
                 clazz.add_attribute(attr)
 
             case ("comp_association", name, multiplicity, target_name, target_body):
@@ -167,7 +182,7 @@ def _classify_field(
     Parse the field and return the matching MetaElement, either a Attribute or Association.
 
     Patterns:
-      Attribute  -> {"type": <str>,  "multiplicity": <str>} | {"type": <str>, "value": <str>}
+      Attribute  -> {"attribute_type": <str>,  "multiplicity": <str>} | {"attribute_type": <str>, "default_value": <str>}
       Association-> {"type": {<ClassName>: {...}}, "multiplicity": <str>}
     """
     multiplicity = field_def.get("multiplicity")
@@ -218,10 +233,11 @@ def _build_enums(
     return enum
 
 
-def _test_enum_value(meta_enum: MetaEnum, value: str):
-    if value not in meta_enum.values:
-        raise ValueError(
-            f"'{value}' ist kein gültiger Wert für {meta_enum.name}. "
-            f"Erlaubt: {meta_enum.values}"
-        )
-    return value
+def _test_enum_value(meta_enum: MetaEnum, value: str) -> MetaEnumLiteral:
+    for enum_literal in meta_enum.values:
+        if value == enum_literal.name or value == enum_literal.value:
+            return enum_literal
+    raise ValueError(
+        f"'{value}' ist kein gültiger Wert für {meta_enum.name}. "
+        f"Erlaubt: {meta_enum.values}"
+    )
