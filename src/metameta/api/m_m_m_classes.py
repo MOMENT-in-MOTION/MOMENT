@@ -44,8 +44,8 @@ class Attribute(MetaElement):
     name                : str
     multiplicity        : MetaEnum
     type                : MetaEnum
-    # TODO Discuss in the group and possibly add. 
-    # default_value       : str | None
+    default_value       : str | None
+
     def validate(self) -> None:
         if not self.name or self.name.strip() == "":
             raise ValueError("The Attribute must have a non-empty name.")
@@ -143,6 +143,3 @@ class MetaModel(MetaElement):
             raise ValueError(f"The Enum with the name {enum.name}" +
                 f"already exists in the MetaClass {self.name}")
         self.enums.append(enum)
-
-
-# TODO FUnktionen im MetaMetamodel

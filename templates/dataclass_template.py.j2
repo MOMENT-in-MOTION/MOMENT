@@ -2,7 +2,7 @@
 {% from "macros/field_macro.j2" import render_field %}
 
 {% block imports %}
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from __future__ import annotations
 from enum_code import *
 {% endblock %}
@@ -11,10 +11,11 @@ from enum_code import *
 {% for cls in classes %}
 @dataclass
 class {{ cls.class_name }}:
-    {% for f in cls.fields %}
+    {% for f in cls.sorted_fields %}
     {{ render_field(f) }}
     {% endfor %}
+{% if not loop.last %}
 
-
-{% endfor %}
-{% endblock %}
+{% endif %}
+{% endfor -%}
+{% endblock -%}

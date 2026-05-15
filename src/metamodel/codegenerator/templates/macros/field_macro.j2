@@ -1,5 +1,0 @@
-{% macro render_field(field) %}
-    {{ field.field_name }} : {{ field.type_hint }} 
-    {%- if field.default is not none %} = {{ field.default }} 
-    {% endif %}
-{% endmacro %}

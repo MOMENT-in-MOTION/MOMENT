@@ -10,7 +10,8 @@ class {{ enum.enum_name }}(Enum):
     {% for o in enum.options %}
     {{ o }} = "{{ o }}"
     {% endfor %}
+{% if not loop.last %}
 
-
-{% endfor %}
-{% endblock %}
+{% endif %}
+{% endfor -%}
+{% endblock -%}

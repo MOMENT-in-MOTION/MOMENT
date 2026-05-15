@@ -3,12 +3,14 @@ import sys
 from pathlib import Path
 
 from metamodel.parser import parse_meta_model
+from metamodel.codegenerator import generate_meta_model_api
 from shared.load_json_as_dict import load_json_as_dict
-from metamodel.codegenerator.codegenerator import generate_Code
+
+from config import METAMODEL_API_DIR
 
 
 def main():
-    "Entry point for the application."
+    """Entry point for the application."""
 
     if len(sys.argv) != 2:
         print("Usage: python main.py <path-to-metamodel> ")
@@ -32,11 +34,11 @@ def main():
 
     print(meta_model)
 
-    generated_code = generate_Code(meta_model=meta_model)
+    generated_code = generate_meta_model_api(meta_model=meta_model)
 
     for name, code in generated_code.items():
 
-        with open(f"src/output/{name}.py", "w") as text_file:
+        with open(f"{METAMODEL_API_DIR}/{name}.py", "w", encoding="UTF-8") as text_file:
             text_file.write(code)
 
 
