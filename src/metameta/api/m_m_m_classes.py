@@ -5,6 +5,33 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any
+from enum import Enum
+
+# ---------------------------------------------------------------------------
+# Enumerations to be used in the MetaModel
+# ---------------------------------------------------------------------------
+
+class MultiplicityOptions(str, Enum):
+    """Multiplicity options for model elements."""
+    
+    ONE = "ONE"
+    AT_LEAST_ONE = "AT_LEAST_ONE"
+    ANY = "ANY"
+    ZERO_OR_ONE = "ZERO_OR_ONE"  # Redundant with OPTIONAL, but may be useful for readability
+    OPTIONAL = "OPTIONAL"
+
+class AssociationOptions(str, Enum):
+    """Association type options."""
+    
+    COMPOSITION = "COMPOSITION"
+    REFERENCE = "REFERENCE"
+
+class TypeOptions(str, Enum):
+    """Type options for attributes."""
+    
+    INT = "int"
+    BOOL = "bool"
+    STRING = "str"
 
 # ---------------------------------------------------------------------------
 # Abstract base class
@@ -164,8 +191,8 @@ class Association(MetaElement):
     """
 
     name: str
-    multiplicity: MetaEnumLiteral
-    association_type: MetaEnumLiteral
+    multiplicity: MultiplicityOptions
+    association_type: AssociationOptions
     association_target: MetaClass | MetaEnum
 
     def validate(self) -> None:
@@ -186,14 +213,14 @@ class OpenAssociation(MetaElement):
         name: Name of the association.
         multiplicity: Association multiplicity.
         association_type: Association type.
-        association_target: Name of the unresolved target.
+        association_target_name: Name of the unresolved target.
     """
 
     # association_origin: MetaClass | None #TODO besprechen. Vielleicht für zweiseitige Referenzen?
     name: str
-    multiplicity: MetaEnumLiteral
-    association_type: MetaEnumLiteral
-    association_target: str
+    multiplicity: MultiplicityOptions
+    association_type: AssociationOptions
+    association_target_name: str
 
     def validate(self) -> None:
         """Validate the open association.
