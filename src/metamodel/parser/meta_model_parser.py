@@ -6,7 +6,7 @@ from metameta.api.m_m_m_classes import (
     MetaModel,
     Association,
     Attribute,
-    OpenReference,
+    OpenAssociation,
 )
 
 logger = logging.getLogger(__name__)
@@ -20,24 +20,32 @@ MULTIPLICITY_OPTIONS: MetaEnum = MetaEnum(
         MetaEnumLiteral(name="ONE", value="ONE"),
         MetaEnumLiteral(name="AT_LEAST_ONE", value="AT_LEAST_ONE"),
         MetaEnumLiteral(name="ANY", value="ANY"),
-        MetaEnumLiteral(name="ZERO_OR_ONE", value="ZERO_OR_ONE"), # Redundant with "OPTIONAL", but may be useful for readability in some cases.
-        MetaEnumLiteral(name="OPTIONAL", value="OPTIONAL")
+        MetaEnumLiteral(
+            name="ZERO_OR_ONE", value="ZERO_OR_ONE"
+        ),  # Redundant with "OPTIONAL", but may be useful for readability in some cases.
+        MetaEnumLiteral(name="OPTIONAL", value="OPTIONAL"),
     ],
 )
 ASSOCIATION_OPTIONS: MetaEnum = MetaEnum(
-    name="AssociationOptions", values=[
+    name="AssociationOptions",
+    values=[
         MetaEnumLiteral(name="COMPOSITION", value="COMPOSITION"),
-        MetaEnumLiteral(name="REFERENCE", value="REFERENCE")
-    ]
+        MetaEnumLiteral(name="REFERENCE", value="REFERENCE"),
+    ],
 )
-TYPE_OPTIONS: MetaEnum = MetaEnum(name="TypeOptions", values=[
-    MetaEnumLiteral(name="INT", value="int"),
-    MetaEnumLiteral(name="BOOL", value="bool"),
-    MetaEnumLiteral(name="STRING", value="str")
-])
+TYPE_OPTIONS: MetaEnum = MetaEnum(
+    name="TypeOptions",
+    values=[
+        MetaEnumLiteral(name="INT", value="int"),
+        MetaEnumLiteral(name="BOOL", value="bool"),
+        MetaEnumLiteral(name="STRING", value="str"),
+    ],
+)
 
 
-def parse_meta_model(meta_model_dict: dict[str, str], verbose: bool=False) -> MetaModel:
+def parse_meta_model(
+    meta_model_dict: dict[str, str], verbose: bool = False
+) -> MetaModel:
     """
     Entry point for the parser builds a MetaModel from the given dict.
     """
@@ -51,186 +59,171 @@ def parse_meta_model(meta_model_dict: dict[str, str], verbose: bool=False) -> Me
     if not verbose:
         logger.setLevel(logging.INFO)
         logger.info("Verbose mode disabled. Logging set to INFO level.")
+
     root = MetaModel()
 
-    open_references: list[OpenReference] = []
+    for key, body in meta_model_dict.items():
+        logger.debug(f"Key: {key} with body: {body} and type: {type(body)}")
+        match key.lower():
+            case "name":
+                root.name = body
+            case "enums":
+                _build_enums(body)
+            case "classes":
+                _build_classes(body)
+            case _:
+                logger.warning(f"Unrecognized top-level key: {key}")
 
-    for class_name, body in meta_model_dict.items():
-        if body.__class__ == list:
-            _build_enums(class_name, body)
-        else:
-            _build_classes(class_name, body, open_references)
-
-    _resolve_open_references(open_references)
-
+    logger.debug(f"All classes: {CLASSES.keys()}")
     for clazz in CLASSES.values():
+        _resolve_open_references(clazz)
         root.add_class(clazz)
 
+    logger.debug(f"All Enums: {ENUMS.keys()}")
     for enum in ENUMS.values():
         root.add_enum(enum)
 
     root.validate()
     return root
 
-_
 
-def _resolve_open_references(open_refs: list[OpenReference]) -> None:
-    for open_ref in open_refs:
-        logger.info(
-            f"Resolving open reference: {open_ref.association_target}"
-            + f"in association {open_ref.name} of class {open_ref.association_origin.name}"
+def _resolve_open_references(cls: MetaClass) -> None:
+
+    for open_association in cls.associations[:]:
+        if isinstance(open_association, OpenAssociation):
+            if target_class := CLASSES.get(open_association.association_target):
+                cls.associations.append(open_association.to_association(target_class))
+                cls.associations.remove(open_association)
+            elif target_enum := ENUMS.get(open_association.association_target):
+                cls.associations.append(open_association.to_association(target_enum))
+                cls.associations.remove(open_association)
+            else:
+                raise KeyError(
+                    f"No class or enum with name '{open_association.association_target}' found for association '{open_association.name}' in class '{cls.name}'."
+                )
+
+
+def _build_classes(class_list: list) -> list[MetaClass]:
+    finalised_classes: list[MetaClass] = []
+
+    for cls in class_list:
+        finalised_classes.append(
+            _build_class(cls["name"], cls["attributes"], cls["associations"])
         )
 
-        if open_ref.association_target in CLASSES:
-            target_cls = CLASSES[open_ref.association_target]
-        elif open_ref.association_target in ENUMS:
-            target_cls = ENUMS[open_ref.association_target]
-        else:
-            continue
-
-        open_ref.association_origin.add_association(
-            Association(
-                name=open_ref.name,
-                multiplicity=open_ref.multiplicity,
-                association=open_ref.association,
-                association_target=target_cls,
-            )
-        )
+    return finalised_classes
 
 
-def _build_classes(
-    class_name: str, class_body: dict, open_references: list[OpenReference]
+def _build_class(
+    class_name: str, class_attributes: list, class_associations: list
 ) -> MetaClass:
     """Recursively build a MetaClass and any classes it references."""
 
+    logger.debug(f"Building Class with name: '{class_name}'.")
     clazz = MetaClass(name=class_name)
+    attributes: list[Attribute] = []
+    associations: list[Association] = []
+
+    for attribute in class_attributes:
+        attributes.append(_build_attribute(attribute))
+
+    clazz.attributes = attributes
+
+    for association in class_associations:
+        associations.append(_build_association(clazz, association))
+
+    clazz.associations = associations
+
     CLASSES[class_name] = clazz
-
-    for field_name, field_body in class_body.items():
-        logger.info(f"Parsing field: {field_name} with body: {field_body}")
-
-        logger.debug(f"Classifying field {field_name} in class {class_name}: {_classify_field(field_name, field_body)}")
-        match _classify_field(field_name, field_body):
-
-            case Attribute() as attr:
-                logger.debug(f"Is attribute for {field_name} with type {attr.attribute_type} and multiplicity {attr.multiplicity}")
-                clazz.add_attribute(attr)
-
-            case ("comp_association", name, multiplicity, target_name, target_body):
-                logger.debug(f"Is composition association for {name} with target {target_name} and multiplicity {multiplicity}")
-                target_cls = _build_classes(target_name, target_body, open_references)
-
-                logger.debug(f"Building association for {name} with target {target_name} and multiplicity {multiplicity}")
-
-                default = "ANY" if not multiplicity else multiplicity
-                multi = _test_enum_value(MULTIPLICITY_OPTIONS, default)
-
-                clazz.add_association(
-                    Association(
-                        name=name,
-                        multiplicity=multi,
-                        association=_test_enum_value(
-                            ASSOCIATION_OPTIONS, "COMPOSITION"
-                        ),
-                        association_target=target_cls,
-                    )
-                )
-
-            case ("ref_association", name, multiplicity, target_name):
-                logger.debug(f"Is reference association for {name} with target {target_name} and multiplicity {multiplicity}")
-                default = "ANY" if not multiplicity else multiplicity
-                multi = _test_enum_value(MULTIPLICITY_OPTIONS, default)
-
-                if target_name in CLASSES:
-                    target_cls = CLASSES[target_name]
-                elif target_name in ENUMS:
-                    target_cls = ENUMS[target_name]
-                else:
-                    open_references.append(
-                        OpenReference(
-                            association_origin=clazz,
-                            name=name,
-                            multiplicity=multi,
-                            association=_test_enum_value(
-                                ASSOCIATION_OPTIONS, "REFERENCE"
-                            ),
-                            association_target=target_name,
-                        )
-                    )
-                    logger.debug(f"Appended open reference for {name} with target {target_name}")
-                    continue
-
-                clazz.add_association(
-                    Association(
-                        name=name,
-                        multiplicity=multi,
-                        association=_test_enum_value(ASSOCIATION_OPTIONS, "REFERENCE"),
-                        association_target=target_cls,
-                    )
-                )
-
-            case None:
-                logger.debug(f"Field {field_name} is neither an attribute nor an association.")
 
     return clazz
 
 
-def _classify_field(
-    name: str, field_def: dict[str, any]
-) -> Attribute | Association | None:
-    """
-    Parse the field and return the matching MetaElement, either a Attribute or Association.
+def _build_enums(enum_list: list[MetaEnum]) -> list[MetaEnum]:
+    enums: list[MetaEnum] = []
 
-    Patterns:
-      Attribute  -> {"attribute_type": <str>,  "multiplicity": <str>} | {"attribute_type": <str>, "default_value": <str>}
-      Association-> {"type": {<ClassName>: {...}}, "multiplicity": <str>}
-    """
-    multiplicity = field_def.get("multiplicity")
-    value = field_def.get("value")
-    type_val = field_def.get("type")
+    if enum_list is None:
+        return
+    elif not isinstance(enum_list, list):
+        raise ValueError(f"Expected a list, got {type(enum_list)}")
 
-    match type_val:
-        case str():
-            if type_val == _test_enum_value(ASSOCIATION_OPTIONS, "REFERENCE"):
-                target_val = field_def.get("target")
-                return ("ref_association", name, multiplicity, target_val)
-            if type_val == _test_enum_value(ASSOCIATION_OPTIONS, "COMPOSITION"):
-                target_val = field_def.get("target")
-                return ("comp_association", name, multiplicity, target_val)
-            if type_val not in TYPE_OPTIONS.values:
-                return ("ref_association", name, multiplicity, type_val)
+    for enum in enum_list:
+        if not isinstance(enum, dict):
+            raise ValueError(f"Expected a dict, got {type(enum)}")
+        enums.append(_build_enum(enum["name"], enum["values"]))
 
-            return Attribute(
-                # TODO Potentially make Attribute have optional Multiplicity,
-                # so that we don't end up wit None fields in the object.
-                name=name,
-                multiplicity=(
-                    _test_enum_value(MULTIPLICITY_OPTIONS, multiplicity)
-                    if multiplicity
-                    else _test_enum_value(MULTIPLICITY_OPTIONS, "ONE")
-                ),
-                type=_test_enum_value(TYPE_OPTIONS, type_val),
-                default_value=value
-            )
-        case {**nested} if nested:
-            target_name, target_body = next(iter(nested.items()))
-            return ("comp_association", name, multiplicity, target_name, target_body)
-        case _:
-            return None
+    return enums
 
 
-def _build_enums(
+def _build_enum(
     enum_name: str,
-    enum_body: dict,
+    enum_values: dict,
 ) -> MetaEnum:
     """Build a MetaEnum."""
 
     enum = MetaEnum(name=enum_name)
     ENUMS[enum_name] = enum
 
-    enum.values = enum_body
+    for value in enum_values:
+        enum.values.append(_build_enum_literal(value))
+
+    TYPE_OPTIONS.add_value(value_name=enum_name.upper(), value=enum_name)
 
     return enum
+
+
+def _build_enum_literal(enum_value) -> MetaEnumLiteral:
+
+    if isinstance(enum_value, str):
+        return MetaEnumLiteral(enum_value.upper(), enum_value)
+    elif isinstance(enum_value, dict):
+        try:
+            return MetaEnumLiteral(enum_value["name"].upper(), enum_value["value"])
+        except KeyError as e:
+            raise ValueError(f"Dict is missing the required Key: {e}")
+    else:
+        raise ValueError(f"Invalid enum value: {enum_value}")
+
+
+def _build_attribute(attribute_values: dict) -> Attribute:
+
+    if missing := {"name", "attribute_type", "multiplicity"} - attribute_values.keys():
+        raise KeyError(
+            f"Missing required keys: {missing} in attribute definition: {attribute_values}"
+        )
+
+    return Attribute(
+        name=attribute_values["name"],
+        attribute_type=_test_enum_value(
+            TYPE_OPTIONS, attribute_values["attribute_type"]
+        ),
+        multiplicity=_test_enum_value(
+            MULTIPLICITY_OPTIONS, attribute_values["multiplicity"]
+        ),
+        default_value=attribute_values.get("default_value"),
+    )
+
+
+def _build_association(cls: MetaClass, association_values: dict) -> Association:
+    if (
+        missing := {"name", "multiplicity", "association_type", "target"}
+        - association_values.keys()
+    ):
+        raise KeyError(
+            f"Missing required keys: {missing} in attribute definition: {association_values}"
+        )
+
+    return OpenAssociation(
+        # association_origin=cls, #TODO besprechen, für zweiseitige Referenzen?
+        name=association_values["name"],
+        multiplicity=_test_enum_value(
+            MULTIPLICITY_OPTIONS, association_values["multiplicity"]
+        ),
+        association_type=_test_enum_value(
+            ASSOCIATION_OPTIONS, association_values["association_type"]
+        ),
+        association_target=association_values["target"],
+    )
 
 
 def _test_enum_value(meta_enum: MetaEnum, value: str) -> MetaEnumLiteral:
@@ -238,6 +231,6 @@ def _test_enum_value(meta_enum: MetaEnum, value: str) -> MetaEnumLiteral:
         if value == enum_literal.name or value == enum_literal.value:
             return enum_literal
     raise ValueError(
-        f"'{value}' ist kein gültiger Wert für {meta_enum.name}. "
-        f"Erlaubt: {meta_enum.values}"
+        f"'{value}' is no valid value for {meta_enum.name}. "
+        f"Allowed: {meta_enum.values}"
     )

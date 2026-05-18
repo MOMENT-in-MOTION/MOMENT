@@ -33,6 +33,7 @@ def main():
     meta_model = parse_meta_model(meta_model_dict=meta_model_dict, verbose=True)
 
     print(meta_model)
+    print(meta_model.pretty())
 
     generated_code = generate_meta_model_api(meta_model=meta_model)
 
