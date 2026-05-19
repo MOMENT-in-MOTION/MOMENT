@@ -1,0 +1,6 @@
+{
+    "GenerateGetters": "true",
+    "GenerateSetters": "true",
+    "GenerateConstructors": "true",
+    "StrictPrivacy": "true"
+}

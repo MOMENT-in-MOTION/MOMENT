@@ -12,8 +12,28 @@ from enum_code import *
 @dataclass
 class {{ cls.class_name }}:
     {% for f in cls.sorted_fields %}
+    {% if ApiConfig.StrictPrivacy == "true" and f.is_association == false %}
+    __{{ render_field(f) }}
+    {% else %}
     {{ render_field(f) }}
+    {% endif %}
     {% endfor %}
+
+
+    {% for f in cls.sorted_fields %}
+    {% if f.is_association == false %}
+    {% if ApiConfig.GenerateGetters == "true" %}
+    def get{{f.field_name}}(self) -> {{f.type_hint}}:
+        return self.{{f.field_name}}
+    {% endif %}
+    {% if ApiConfig.GenerateSetters == "true" %}
+    def set{{f.field_name}}(self, value: {{f.type_hint}}) -> None:
+        self.{{f.field_name}} = value
+    {% endif %}
+    {% endif %}
+    {% endfor %}
+
+
 {% if not loop.last %}
 
 {% endif %}
