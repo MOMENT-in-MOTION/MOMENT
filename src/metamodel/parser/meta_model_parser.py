@@ -139,7 +139,8 @@ def _classify_field(name: str, field_def: dict[str, any]) -> Attribute | Associa
       Association-> {"type": {<ClassName>: {...}}, "multiplicity": <str>}
     """
     multiplicity = field_def.get("multiplicity")
-    type_val     = field_def.get("type")
+    value = field_def.get("value")
+    type_val = field_def.get("type")
 
     match type_val:
         case str():
@@ -159,6 +160,7 @@ def _classify_field(name: str, field_def: dict[str, any]) -> Attribute | Associa
                 multiplicity=_test_enum_value(MULTIPLICITY_OPTIONS, multiplicity)
                     if multiplicity else None,
                 type=_test_enum_value(TYPE_OPTIONS, type_val),
+                default_value=value
             )
         case {**nested} if nested:
             target_name, target_body = next(iter(nested.items()))
