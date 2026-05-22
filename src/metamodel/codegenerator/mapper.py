@@ -78,12 +78,11 @@ class EnumDescriptor(Descriptor):
 
     Attributes:
         enum_name: The Python class name.
-        options:   The enum member names.
-                   Each becomes both the member name and its string value,
-                   e.g. ``IN = "IN"``.
+        options:   The enum member names and values.
+                   In a dictionary where each key is the member name and each value the member value.
     """
     enum_name: str
-    options: list[str]
+    options: dict[str,str]
 
 
 @dataclass
@@ -107,18 +106,13 @@ class TemplateContext:
 # ---------------------------------------------------------------------------
 
 
-def resolve_primitive_type(type_option: str) -> str:
-    match type_option:
-        case "INT":
-            return "int"
-        case "BOOL":
-            return "bool"
-        case "STRING":
-            return "str"
-        case _:
-            raise TypeError(
-                f"Unknown primitive type: {type_option}. Expected 'INT', 'BOOL' or 'STRING'."
-            )
+def resolve_primitive_type_or_meta_enum(type_option: TypeOptions) -> str:
+    if isinstance(type_option, MetaEnum):
+        return type_option.name
+    elif type_option in TypeOptions:
+        return type_option.value
+    else:    
+        raise TypeError(f"Expected TypeOptions enum or MetaEnum, got {type_option}")
 
 def resolve_multiplicity_and_default(
     multiplicity: str,
@@ -171,7 +165,7 @@ def field_view_from_attribute(attribute: Attribute) -> FieldDescriptor:
     print(f"Creating Field-View with the title: {attribute.name}")
     type_hint, default = resolve_multiplicity_and_default(
         attribute.multiplicity,
-        resolve_primitive_type(attribute.type),
+        resolve_primitive_type_or_meta_enum(attribute.attribute_type),
         attribute.default_value
     )
 
@@ -200,7 +194,7 @@ def field_view_from_association(association: Association) -> FieldDescriptor:
         type_hint=type_hint,
         default=default,
         is_association=True,
-        association_kind=resolve_association(association.association),
+        association_kind=resolve_association(association.association_type),
     )
 
 
@@ -224,7 +218,10 @@ def create_class_descriptor(cls: MetaClass) -> ClassDescriptor:
 
 def create_enum_descriptor(enum: MetaEnum):
     print(f"Creating Enum-View with the title: {enum.name}")
-    return EnumDescriptor(enum_name=enum.name, options=enum.values)
+    enum_values: dict[str, str] = {}
+    for meta_enum_literal in enum.values:
+        enum_values[meta_enum_literal.name] = meta_enum_literal.value
+    return EnumDescriptor(enum_name=enum.name, options=enum_values)
 
 
 # ---------------------------------------------------------------------------
