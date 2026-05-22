@@ -11,27 +11,33 @@ from enum import Enum
 # Enumerations to be used in the MetaModel
 # ---------------------------------------------------------------------------
 
+
 class MultiplicityOptions(str, Enum):
     """Multiplicity options for model elements."""
-    
+
     ONE = "ONE"
     AT_LEAST_ONE = "AT_LEAST_ONE"
     ANY = "ANY"
-    ZERO_OR_ONE = "ZERO_OR_ONE"  # Redundant with OPTIONAL, but may be useful for readability
+    ZERO_OR_ONE = (
+        "ZERO_OR_ONE"  # Redundant with OPTIONAL, but may be useful for readability
+    )
     OPTIONAL = "OPTIONAL"
+
 
 class AssociationOptions(str, Enum):
     """Association type options."""
-    
+
     COMPOSITION = "COMPOSITION"
     REFERENCE = "REFERENCE"
 
+
 class TypeOptions(str, Enum):
     """Type options for attributes."""
-    
+
     INT = "int"
     BOOL = "bool"
     STRING = "str"
+
 
 # ---------------------------------------------------------------------------
 # Abstract base class
@@ -110,7 +116,7 @@ class MetaEnum(MetaElement):
 
 @dataclass(
     eq=True, frozen=True
-)  # frozen=True bei MetaEnumLiteral allows hashing, which is necessary for the set() comparison in validate().
+)  # frozen=True bei MetaEnumLiteral allows hashing, for the set() comparison in validate().
 class MetaEnumLiteral(MetaElement):
     """Represents a literal of an enumeration.
 
@@ -216,7 +222,7 @@ class OpenAssociation(MetaElement):
         association_target_name: Name of the unresolved target.
     """
 
-    # association_origin: MetaClass | None #TODO besprechen. Vielleicht für zweiseitige Referenzen?
+    # association_origin: MetaClass | None #TODO Vielleicht für zweiseitige Referenzen?
     name: str
     multiplicity: MultiplicityOptions
     association_type: AssociationOptions

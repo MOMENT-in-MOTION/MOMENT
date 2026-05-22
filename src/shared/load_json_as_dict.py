@@ -19,7 +19,9 @@ def load_json_as_dict(path: Path) -> dict[str] | None:
             meta_model = json.load(json_file)
             return structure_data(meta_model)
     except Exception as e:
-        raise IOError(f"Encountered the Error '{e}' while loading the file: {path}") from e
+        raise IOError(
+            f"Encountered the Error '{e}' while loading the file: {path}"
+        ) from e
 
 
 def structure_data(unstructured: dict) -> dict[str, list]:
@@ -39,7 +41,7 @@ def structure_data(unstructured: dict) -> dict[str, list]:
     for key, value in unstructured.items():
         key_lower = key.lower()
         match key_lower:
-            case k if "name" in k: 
+            case k if "name" in k:
                 structured["name"].append(value)
             case k if "enums" in k:
                 structured["enums"] += value
@@ -47,9 +49,9 @@ def structure_data(unstructured: dict) -> dict[str, list]:
                 structured["classes"] += value
             case _:
                 raise ValueError(f"Unexpected key '{key}' with value '{value}'.")
-            
+
     if len(structured["name"]) > 1:
         names = structured["name"]
         raise ValueError(f"Multiple names where given: {names}")
-                
+
     return structured
