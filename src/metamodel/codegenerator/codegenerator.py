@@ -9,7 +9,7 @@ def generate_meta_model_api(meta_model: MetaModel) -> dict[str, str]:
     """
     Generates the API for the metamodel.
 
-    Parameters:
+    Args:
         meta_model: A instance of the metametamodel containing all the data of the metamodel.
     """
     j2_engine = build_engine(TEMPLATES_DIR)
