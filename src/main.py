@@ -1,12 +1,15 @@
 import sys
+import logging
 
 from pathlib import Path
 
 from metamodel.parser import parse_meta_model
 from metamodel.codegenerator import generate_meta_model_api
 from shared.load_json_as_dict import load_json_as_dict
+from shared.configure_logging import configure_logging
 
 from config import METAMODEL_API_DIR
+logger = logging.getLogger(__name__)
 
 
 def main():
@@ -21,6 +24,7 @@ def main():
         sys.exit(1)
 
     path = Path(sys.argv[1])
+    configure_logging(verbose = True)
 
     try:
         meta_model_dict = load_json_as_dict(path=path)
@@ -30,9 +34,9 @@ def main():
 
     print(f"Successfully loaded metamodel: {path}")
 
-    meta_model = parse_meta_model(meta_model_dict=meta_model_dict, verbose=True)
+    meta_model = parse_meta_model(meta_model_dict=meta_model_dict)
 
-    print(meta_model)
+    logger.debug(meta_model)
     print(meta_model.pretty())
 
     generated_code = generate_meta_model_api(meta_model=meta_model)

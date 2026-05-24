@@ -1,6 +1,7 @@
 import logging
 from enum import Enum
-from metameta.api.m_m_m_classes import (
+from metamodel.parser.helper import structure_data
+from metameta.m_m_m_classes import (
     MetaClass,
     MetaEnum,
     MetaEnumLiteral,
@@ -13,14 +14,13 @@ from metameta.api.m_m_m_classes import (
     TypeOptions,
 )
 
-logger = logging.getLogger(__name__)
 CLASSES: dict[str, MetaClass] = {}
 ENUMS: dict[str, MetaEnum] = {}
+logger = logging.getLogger(__name__)
 
 
 def parse_meta_model(
-    meta_model_dict: dict[str, str], verbose: bool = False
-) -> MetaModel:
+    meta_model_dict: dict[str, str]) -> MetaModel:
     """Entry point for the parser builds a MetaModel from the given dict.
 
     Args:
@@ -31,9 +31,8 @@ def parse_meta_model(
     Returns:
         MetaModel: The parsed MetaModel instance.
     """
-    _configure_logging(verbose)
 
-    return _parse(meta_model_dict)
+    return _parse(structure_data(meta_model_dict))
 
 
 def _parse(meta_model_dict: dict) -> MetaModel:
@@ -66,19 +65,6 @@ def _parse(meta_model_dict: dict) -> MetaModel:
     ENUMS.clear()
 
     return root
-
-def _configure_logging(verbose: bool) -> None:
-    """Configure the logging settings based on the verbose flag."""
-    logging.basicConfig(
-        format="%(levelname)s - %(message)s",
-        handlers=[logging.StreamHandler()],
-    )
-    if verbose:
-        logger.setLevel(logging.DEBUG)
-        logger.debug("Verbose mode enabled. Logging set to DEBUG level.")
-    if not verbose:
-        logger.setLevel(logging.INFO)
-        logger.info("Verbose mode disabled. Logging set to INFO level.")
 
 
 def _resolve_open_references(cls: MetaClass) -> None:

@@ -4,7 +4,7 @@ from abc import ABC
 from dataclasses import dataclass
 
 # pylint: disable=W0614, W0401
-from metameta.api.m_m_m_classes import *
+from metameta.m_m_m_classes import *
 
 class Descriptor(ABC):
     """
