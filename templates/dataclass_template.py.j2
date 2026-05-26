@@ -1,6 +1,6 @@
 {% extends "base_template.py.j2" %}
 {% from "macros/field_macro.j2" import render_field %}
-
+{'#- This template generates Python dataclasses based on the provided class descriptors. It can be configured using the api_config to conform to unser specific api design preferences -#}
 {% block imports %}
 from __future__ import annotations
 from dataclasses import dataclass
@@ -10,9 +10,19 @@ from enum_code import *
 {% block body %}
 {% for cls in classes %}
 @dataclass
-class {{ cls.class_name }}:
+class {{ cls.class_name }}: 
+    {# Generate a docstring listing the fields and their types #}
+    """
+    Generated dataclass for {{ cls.class_name }} 
+    Fields:
     {% for f in cls.sorted_fields %}
-    {% if ApiConfig.StrictPrivacy == "true" and f.is_association == false %}
+    {{ f.field_name }}: {{ f.type_hint }}{% if f.has_default %} = {{ f.rendered_default }}{% endif %} 
+    {% endfor %}
+    """
+
+    {% for f in cls.sorted_fields %}
+    {#- If strict privacy is enabled and this is a non-association field, make it private by prefixing with __ -#}
+    {% if api_config.StrictPrivacy == "true" and f.is_association == false %}
     __{{ render_field(f) }}
     {% else %}
     {{ render_field(f) }}
@@ -21,13 +31,16 @@ class {{ cls.class_name }}:
 
 
     {% for f in cls.sorted_fields %}
+    {#- Generate getters and setters for non-association fields based on configuration -#}
     {% if f.is_association == false %}
-    {% if ApiConfig.GenerateGetters == "true" %}
+    {% if api_config.GenerateGetters == "true" %}
     def get{{f.field_name}}(self) -> {{f.type_hint}}:
+        """generated getter for {{f.field_name}}"""
         return self.{{f.field_name}}
     {% endif %}
-    {% if ApiConfig.GenerateSetters == "true" %}
+    {% if api_config.GenerateSetters == "true" %}
     def set{{f.field_name}}(self, value: {{f.type_hint}}) -> None:
+        """generated setter for {{f.field_name}}"""
         self.{{f.field_name}} = value
     {% endif %}
     {% endif %}
