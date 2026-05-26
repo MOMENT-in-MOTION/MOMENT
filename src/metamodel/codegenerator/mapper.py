@@ -238,7 +238,7 @@ def create_descriptors(meta_model: MetaModel) -> dict[str, list[Descriptor]]:
     class_views: list[ClassDescriptor] = []
     enum_views: list[EnumDescriptor] = []
 
-    ApiConfig = load_json_as_dict(path=Path("src/ApiConfig.json"))
+    api_config = load_json_as_dict(path=Path("src/api_config.json"))
 
     for cls in meta_model.classes:
         class_views.append(create_class_descriptor(cls))
@@ -246,4 +246,4 @@ def create_descriptors(meta_model: MetaModel) -> dict[str, list[Descriptor]]:
     for enum in meta_model.enums:
         enum_views.append(create_enum_descriptor(enum))
 
-    return {"classes": class_views, "enums": enum_views, "ApiConfig": ApiConfig}
+    return {"classes": class_views, "enums": enum_views, "api_config": api_config}
