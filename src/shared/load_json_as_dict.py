@@ -2,6 +2,7 @@ import json
 
 from pathlib import Path
 
+
 def load_json_as_dict(path: Path) -> dict[str] | None:
     """
     Returns the content of a .json file as a python dict.
@@ -14,8 +15,10 @@ def load_json_as_dict(path: Path) -> dict[str] | None:
         raise ValueError("File needs to be a json file!")
 
     try:
-        with open(path, encoding='UTF8') as json_file:
+        with open(path, encoding="UTF8") as json_file:
             meta_model = json.load(json_file)
             return meta_model
     except Exception as e:
-        raise IOError(f"Encountered an Error while loading the file: {path}") from e
+        raise IOError(
+            f"Encountered the Error '{e}' while loading the file: {path}"
+        ) from e

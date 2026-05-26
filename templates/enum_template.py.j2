@@ -7,8 +7,8 @@ from enum import Enum
 {% block body %}
 {% for enum in enums %}
 class {{ enum.enum_name }}(Enum):
-    {% for o in enum.options %}
-    {{ o }} = "{{ o }}"
+    {% for n, v in enum.options.items() %}
+    {{ n }} = "{{ v }}"
     {% endfor %}
 {% if not loop.last %}
 

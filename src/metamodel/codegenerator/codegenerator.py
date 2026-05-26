@@ -1,4 +1,4 @@
-from metameta.api.m_m_m_classes import MetaModel
+from metameta.m_m_m_classes import MetaModel
 from config import TEMPLATES_DIR
 
 from .mapper import create_descriptors

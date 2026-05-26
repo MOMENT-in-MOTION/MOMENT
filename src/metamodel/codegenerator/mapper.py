@@ -4,7 +4,7 @@ from abc import ABC
 from dataclasses import dataclass
 
 # pylint: disable=W0614, W0401
-from metameta.api.m_m_m_classes import *
+from metameta.m_m_m_classes import *
 
 class Descriptor(ABC):
     """
@@ -30,6 +30,7 @@ class FieldDescriptor(Descriptor):
     field_name: str
     type_hint: str
     is_association: bool
+    is_meta_enum: bool
     association_kind: str | None
     default: str | None
 
@@ -43,13 +44,28 @@ class FieldDescriptor(Descriptor):
         """Returns the default value formatted for use in generated code."""
         if self.default == "None":
             return None
-        if self.type_hint in ("str", "str | None"):
-            return f'"{self.default}"'
-        if self.type_hint in ("list[str]", "list[str] | None"):
-            return f'["{self.default}"]'
         if "list" in self.type_hint:
-            return f'[{self.default}]'
-        return self.default
+            return build_list_default(self.default, self.type_hint, self.is_meta_enum)
+        return build_default(self.default, self.type_hint, self.is_meta_enum)
+
+def build_default(default_value: str, type_hint: str, is_meta_enum: bool) -> str:
+    if is_meta_enum:
+        return f'{type_hint}.{default_value}'
+    if type_hint in ("str", "str | None"):
+        return f'"{default_value}"'
+    if type_hint in ("bool", "bool | None"):
+        return f'{default_value}'
+    if type_hint in ("int", "int | None"):
+        return f'{default_value}'
+    return f'{default_value}'
+
+def build_list_default(default_values: list[str] | str, type_hint: str, is_meta_enum: bool) -> str:
+
+    list_default = "["
+    for val in default_values:
+        default_value = build_default(val, type_hint[5:-1], is_meta_enum)
+        list_default += f"{default_value}, "
+    return list_default[:-2] + "]"
 
 
 @dataclass(eq=True)
@@ -78,12 +94,12 @@ class EnumDescriptor(Descriptor):
 
     Attributes:
         enum_name: The Python class name.
-        options:   The enum member names.
-                   Each becomes both the member name and its string value,
-                   e.g. ``IN = "IN"``.
+        options:   The enum member names and values.
+                   In a dictionary where each key is the member name
+                   and each value the member value.
     """
     enum_name: str
-    options: list[str]
+    options: dict[str,str]
 
 
 @dataclass
@@ -107,18 +123,12 @@ class TemplateContext:
 # ---------------------------------------------------------------------------
 
 
-def resolve_primitive_type(type_option: str) -> str:
-    match type_option:
-        case "INT":
-            return "int"
-        case "BOOL":
-            return "bool"
-        case "STRING":
-            return "str"
-        case _:
-            raise TypeError(
-                f"Unknown primitive type: {type_option}. Expected 'INT', 'BOOL' or 'STRING'."
-            )
+def resolve_primitive_type_or_meta_enum(type_option: TypeOptions) -> str:
+    if isinstance(type_option, MetaEnum):
+        return type_option.name, True
+    if type_option in TypeOptions:
+        return type_option.value, False
+    raise TypeError(f"Expected TypeOptions enum or MetaEnum, got {type_option}")
 
 def resolve_multiplicity_and_default(
     multiplicity: str,
@@ -169,9 +179,10 @@ def resolve_multiplicity_and_default(
 
 def field_view_from_attribute(attribute: Attribute) -> FieldDescriptor:
     print(f"Creating Field-View with the title: {attribute.name}")
+    type_hint, is_meta_enum = resolve_primitive_type_or_meta_enum(attribute.attribute_type)
     type_hint, default = resolve_multiplicity_and_default(
         attribute.multiplicity,
-        resolve_primitive_type(attribute.type),
+        type_hint,
         attribute.default_value
     )
 
@@ -179,6 +190,7 @@ def field_view_from_attribute(attribute: Attribute) -> FieldDescriptor:
         field_name=attribute.name,
         type_hint=type_hint,
         default=default,
+        is_meta_enum=is_meta_enum,
         is_association=False,
         association_kind=None,
     )
@@ -200,7 +212,8 @@ def field_view_from_association(association: Association) -> FieldDescriptor:
         type_hint=type_hint,
         default=default,
         is_association=True,
-        association_kind=resolve_association(association.association),
+        association_kind=resolve_association(association.association_type),
+        is_meta_enum=False
     )
 
 
@@ -224,7 +237,10 @@ def create_class_descriptor(cls: MetaClass) -> ClassDescriptor:
 
 def create_enum_descriptor(enum: MetaEnum):
     print(f"Creating Enum-View with the title: {enum.name}")
-    return EnumDescriptor(enum_name=enum.name, options=enum.values)
+    enum_values: dict[str, str] = {}
+    for meta_enum_literal in enum.values:
+        enum_values[meta_enum_literal.name] = meta_enum_literal.value
+    return EnumDescriptor(enum_name=enum.name, options=enum_values)
 
 
 # ---------------------------------------------------------------------------
