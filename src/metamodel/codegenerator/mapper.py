@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from abc import ABC
 from dataclasses import dataclass
-from pathlib import Path
-from shared.load_json_as_dict import load_json_as_dict
 
 from metameta.m_m_m_classes import (
     MetaClass,
@@ -11,7 +9,8 @@ from metameta.m_m_m_classes import (
     Association,
     TypeOptions,
     Attribute,
-    MetaModel
+    MetaModel,
+    MultiplicityOptions
 )
 
 class Descriptor(ABC):
@@ -23,57 +22,66 @@ class Descriptor(ABC):
 @dataclass(eq=True)
 class FieldDescriptor(Descriptor):
     """
-    Describes a single field (attribute or association) on a generated class.
+    Describes a single field on a generated class.
+
+    Stores the raw building blocks separately so that renaming a class
+    (base_type) never corrupts the multiplicity wrapping, and so that
+    default formatting can inspect each part independently.
+
     Attributes:
-        field_name:         The Python identifier used as the field name.
-        type_hint:          The fully resolved type annotation string,
-                            e.g. 'str', 'list[str]', 'str | None'.
-        default:            The default value expression as a string if explicitly
-                            set, None if no default was provided, "None" if the
-                            field is optional (e.g. 'ZERO_OR_ONE').
-        is_association:     True when this field was derived from an Association.
-        association_kind:   The association kind ('composition', 'reference'), or None for
-                            plain attributes.
+        field_name:       Python identifier for the field.
+        base_type:        The unwrapped type name, e.g. 'str', 'MyClass'.
+        multiplicity:     Cardinality of the field.
+        default:          Raw default value string from the metamodel, or None.
+        is_association:   True when derived from an Association.
+        is_meta_enum:     True when base_type refers to a MetaEnum.
+        association_kind: 'composition', 'reference', or None.
     """
     field_name: str
-    type_hint: str
+    base_type: str
+    multiplicity: MultiplicityOptions
     is_association: bool
     is_meta_enum: bool
     association_kind: str | None
     default: str | None
 
+
+    @property
+    def type_hint(self) -> str:
+        """Fully resolved type annotation, e.g. 'list[MyClass] | None'."""
+        t = self.base_type
+        if self.multiplicity.is_list:
+            t = f"list[{t}]"
+        if self.multiplicity.is_optional:
+            t = f"{t} | None"
+        return t
+
     @property
     def has_default(self) -> bool:
-        """True if this field has an explicit default (including "None" when optional)."""
-        return self.default is not None
+        return self.multiplicity.is_optional or self.default is not None
 
     @property
     def rendered_default(self) -> str | None:
-        """Returns the default value formatted for use in generated code."""
-        if self.default == "None":
+        """Default expression ready for code generation, or None if omitted."""
+        if self.multiplicity.is_optional and self.default is None:
+            return "None"
+        if self.default is None:
             return None
-        if "list" in self.type_hint:
-            return build_list_default(self.default, self.type_hint, self.is_meta_enum)
-        return build_default(self.default, self.type_hint, self.is_meta_enum)
+        if self.multiplicity.is_list:
+            return self._render_list_default(self.default)
+        return self._render_scalar_default(self.default)
 
-def build_default(default_value: str, type_hint: str, is_meta_enum: bool) -> str:
-    if is_meta_enum:
-        return f'{type_hint}.{default_value}'
-    if type_hint in ("str", "str | None"):
-        return f'"{default_value}"'
-    if type_hint in ("bool", "bool | None"):
-        return f'{default_value}'
-    if type_hint in ("int", "int | None"):
-        return f'{default_value}'
-    return f'{default_value}'
+    def _render_scalar_default(self, value: str) -> str:
+        if self.is_meta_enum:
+            return f"{self.base_type}.{value}"
+        if self.base_type in ("str",):
+            return f'"{value}"'
+        # int, bool is emited as-is
+        return value
 
-def build_list_default(default_values: list[str] | str, type_hint: str, is_meta_enum: bool) -> str:
-
-    list_default = "["
-    for val in default_values:
-        default_value = build_default(val, type_hint[5:-1], is_meta_enum)
-        list_default += f"{default_value}, "
-    return list_default[:-2] + "]"
+    def _render_list_default(self, values: list[str] | str) -> str:
+        items = ", ".join(self._render_scalar_default(v) for v in values)
+        return f"[{items}]"
 
 
 @dataclass(eq=True)
@@ -134,76 +142,17 @@ def resolve_primitive_type_or_meta_enum(type_option: TypeOptions) -> str:
         return type_option.value, False
     raise TypeError(f"Expected TypeOptions enum or MetaEnum, got {type_option}")
 
-def resolve_multiplicity_and_default(
-    multiplicity: str,
-    type_option: str,
-    default: str | None = None
-) -> tuple[str, str | None]:
-    """
-    Resolves the type hint and default value for a field based on its multiplicity.
 
-    Args:
-        multiplicity:   How many instances of the type are allowed:
-                            - "ONE"         → exactly one, required (e.g. `str`)
-                            - "AT_LEAST_ONE"→ one or more, required (e.g. `list[str]`)
-                            - "ANY"         → zero or more, optional (e.g. `list[str] | None`)
-                            - "ZERO_OR_ONE" → zero or one, optional (e.g. `str | None`)
-                            - "OPTIONAL"    → same as ZERO_OR_ONE
-                            - None          → defaults to ANY behaviour
-        type_option:    The base Python type name to wrap, e.g. `"str"`, `"int"`, `"MyClass"`.
-        default:        The default value as a string, e.g. `"42"`, `"MyClass"`.
-                        If None and the field is optional, defaults to `"None"`.
-                        If None and the field is required (ONE, AT_LEAST_ONE), no default is set.
-
-    Returns:
-        A tuple of (type_hint, default_value) where:
-            - type_hint     is the fully resolved type annotation string
-            - default_value is the default expression string, or None if no default applies
-    """
-    optional_default = "None" if default is None else default
-
-    match multiplicity:
-        case "ONE":
-            return f"{type_option}", default
-        case "AT_LEAST_ONE":
-            return f"list[{type_option}]", default
-        case "ANY":
-            return f"list[{type_option}] | None", optional_default
-        case "ZERO_OR_ONE":
-            return f"{type_option} | None", optional_default
-        case "OPTIONAL":
-            return f"{type_option} | None", optional_default
-        case None:
-            return f"list[{type_option}] | None", optional_default
-        case _:
-            raise TypeError(
-                f"Unknown multiplicity: {multiplicity} is not a valid multiplicity!"
-            )
-
-
-def field_view_from_attribute(attribute: Attribute) -> FieldDescriptor:
-    """
-    Build a FieldDescriptor for a class attribute (non-association).
-
-    Resolves the attribute's multiplicity and primitive type to produce the
-    appropriate type hint and default value, then wraps everything in a
-    FieldDescriptor.
-
-    Args:
-        attribute: The Attribute instance from the meta-model.
-    """
-    print(f"Creating Field-View with the title: {attribute.name}")
-    type_hint, is_meta_enum = resolve_primitive_type_or_meta_enum(attribute.attribute_type)
-    type_hint, default = resolve_multiplicity_and_default(
-        attribute.multiplicity,
-        type_hint,
-        attribute.default_value
-    )
+def field_descriptor_from_attribute(attribute: Attribute) -> FieldDescriptor:
+    print(f"Creating Field with the title: {attribute.name}")
+    base_type, is_meta_enum = resolve_primitive_type_or_meta_enum(attribute.attribute_type)
+    multiplicity = MultiplicityOptions(attribute.multiplicity or "ANY")
 
     return FieldDescriptor(
         field_name=attribute.name,
-        type_hint=type_hint,
-        default=default,
+        base_type=base_type,
+        multiplicity=multiplicity,
+        default=attribute.default_value,
         is_meta_enum=is_meta_enum,
         is_association=False,
         association_kind=None,
@@ -220,7 +169,7 @@ def resolve_association(association: str) -> str:
     return association.lower()
 
 
-def field_view_from_association(association: Association) -> FieldDescriptor:
+def field_descriptor_from_association(association: Association) -> FieldDescriptor:
     """
     Build a FieldDescriptor for a class association (reference to another class).
 
@@ -231,19 +180,17 @@ def field_view_from_association(association: Association) -> FieldDescriptor:
     Args:
         association: The Association instance from the meta-model.
     """
-    print(f"Creating Field-View with the title: {association.name}")
-    type_hint, default = resolve_multiplicity_and_default(
-        association.multiplicity,
-        association.association_target.name
-    )
+    print(f"Creating Field with the title: {association.name}")
+    multiplicity = MultiplicityOptions(association.multiplicity or "ANY")
 
     return FieldDescriptor(
         field_name=association.name,
-        type_hint=type_hint,
-        default=default,
+        base_type=association.association_target.name,
+        multiplicity=multiplicity,
+        default=None,
+        is_meta_enum=False,
         is_association=True,
         association_kind=resolve_association(association.association_type),
-        is_meta_enum=False
     )
 
 
@@ -262,10 +209,10 @@ def create_class_descriptor(cls: MetaClass) -> ClassDescriptor:
     class_view = ClassDescriptor(class_name=cls.name, fields=[])
 
     for attribute in cls.attributes:
-        class_view.fields.append(field_view_from_attribute(attribute))
+        class_view.fields.append(field_descriptor_from_attribute(attribute))
 
     for association in cls.associations:
-        class_view.fields.append(field_view_from_association(association))
+        class_view.fields.append(field_descriptor_from_association(association))
 
     return class_view
 
@@ -297,12 +244,10 @@ def create_descriptors(meta_model: MetaModel) -> dict[str, list[Descriptor]]:
     class_views: list[ClassDescriptor] = []
     enum_views: list[EnumDescriptor] = []
 
-    api_config = load_json_as_dict(path=Path("src/api_config.json"))
-
     for cls in meta_model.classes:
         class_views.append(create_class_descriptor(cls))
 
     for enum in meta_model.enums:
         enum_views.append(create_enum_descriptor(enum))
 
-    return {"classes": class_views, "enums": enum_views, "api_config": api_config}
+    return {"classes": class_views, "enums": enum_views}

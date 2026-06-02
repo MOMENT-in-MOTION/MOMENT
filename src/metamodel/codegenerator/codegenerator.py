@@ -11,14 +11,19 @@ def generate_meta_model_api(
     Generates the API for the metamodel.
 
     Args:
-        meta_model: A instance of the metametamodel containing all the data of the metamodel.
+        j2_engine: The Jinja2 environment used for rendering the templates.
+        context: A dictionary containing the metamodel data and configuration.
+        formatter: The formatter instance used to prepare the field descriptors.
+
+    Returns:
+        A dictionary containing the generated "dataclass_code" and "enum_code".
     """
     formatter.format_descriptors(context)
 
     dataclass_code = render(j2_engine, "dataclass_template.py.j2", context)
-    enum_code  = render(j2_engine, "enum_template.py.j2",       context)
+    enum_code = render(j2_engine, "enum_template.py.j2", context)
 
     return {
         "dataclass_code": dataclass_code,
-        "enum_code":      enum_code,
+        "enum_code": enum_code,
     }
