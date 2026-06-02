@@ -4,11 +4,16 @@ import logging
 from pathlib import Path
 
 from metamodel.parser import parse_meta_model
-from metamodel.codegenerator import generate_meta_model_api
+from metamodel.codegenerator import (
+    generate_meta_model_api,
+    get_formatter,
+    build_engine,
+    create_descriptors
+)
 from shared.load_json_as_dict import load_json_as_dict
 from shared.configure_logging import configure_logging
 
-from config import METAMODEL_API_DIR
+from config import METAMODEL_API_DIR, TEMPLATES_DIR
 logger = logging.getLogger(__name__)
 
 
@@ -39,7 +44,14 @@ def main():
     logger.debug(meta_model)
     print(meta_model.pretty())
 
-    generated_code = generate_meta_model_api(meta_model=meta_model)
+    api_config = load_json_as_dict(path=Path("src/api_config.json"))
+    formatter = get_formatter(api_config["NamingConvention"])
+
+    j2_engine = build_engine(TEMPLATES_DIR)
+    context = create_descriptors(meta_model=meta_model)
+    context.update({"api_config": api_config})
+
+    generated_code = generate_meta_model_api(j2_engine, context, formatter)
 
     for name, code in generated_code.items():
 

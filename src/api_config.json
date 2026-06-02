@@ -2,5 +2,6 @@
     "GenerateGetters": "true",
     "GenerateSetters": "true",
     "GenerateConstructors": "true",
-    "StrictPrivacy": "true"
+    "StrictPrivacy": "true",
+    "NamingConvention": "snake_case"
 }

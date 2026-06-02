@@ -5,8 +5,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from shared.load_json_as_dict import load_json_as_dict
 
-# pylint: disable=W0614, W0401
-from metameta.m_m_m_classes import *
+from metameta.m_m_m_classes import (
+    MetaClass,
+    MetaEnum,
+    Association,
+    TypeOptions,
+    Attribute,
+    MetaModel
+)
 
 class Descriptor(ABC):
     """
