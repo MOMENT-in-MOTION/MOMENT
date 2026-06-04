@@ -2,5 +2,7 @@
     "GenerateGetters": "true",
     "GenerateSetters": "true",
     "GenerateConstructors": "true",
-    "StrictPrivacy": "true"
+    "StrictPrivacy": "true",
+    "UseDoubleUnderscore": "true",
+    "ExplicitTypeSafety": "true"
 }
