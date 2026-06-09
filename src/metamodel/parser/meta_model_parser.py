@@ -1,6 +1,5 @@
 import logging
 from enum import Enum
-from metamodel.parser.helper import structure_data
 from metameta.m_m_m_classes import (
     MetaClass,
     MetaEnum,
@@ -32,7 +31,7 @@ def parse_meta_model(
         MetaModel: The parsed MetaModel instance.
     """
 
-    return _parse(structure_data(meta_model_dict))
+    return _parse(meta_model_dict)
 
 
 def _parse(meta_model_dict: dict) -> MetaModel:
@@ -40,10 +39,10 @@ def _parse(meta_model_dict: dict) -> MetaModel:
     root = MetaModel()
 
     for key, body in meta_model_dict.items():
-        logger.debug(f"Key: {key} with body: {body} and type: {type(body)}")
+        logger.debug(f"Key: '{key}' with body: '{body}' and type: '{type(body)}'")
         match key.lower():
             case "name":
-                (root.name,) = body
+                root.name = body
             case "enums":
                 _build_enums(body)
             case "classes":
@@ -80,8 +79,8 @@ def _resolve_open_references(cls: MetaClass) -> None:
                 cls.associations.remove(open_association)
             else:
                 raise ValueError(
-                    f"No class or enum with name '{open_association.association_target}'"
-                    " found for association '{open_association.name}' in class '{cls.name}'."
+                    f"No class or enum with name '{open_association.association_target_name}'"
+                    f" found for association '{open_association.name}' in class '{cls.name}'."
                 )
 
 

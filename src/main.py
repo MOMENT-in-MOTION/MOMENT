@@ -5,8 +5,8 @@ from pathlib import Path
 
 from metamodel.parser import parse_meta_model
 from metamodel.codegenerator import generate_meta_model_api
-from shared.load_json_as_dict import load_json_as_dict
 from shared.configure_logging import configure_logging
+from metamodel.merger import merge_meta_models
 
 from config import METAMODEL_API_DIR
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ def main():
     configure_logging(verbose = True)
 
     try:
-        meta_model_dict = load_json_as_dict(path=path)
+        meta_model_dict = merge_meta_models(path=path)
     except IOError as e:
         print(getattr(e, "message", str(e)))
         sys.exit(1)
@@ -36,8 +36,7 @@ def main():
 
     meta_model = parse_meta_model(meta_model_dict=meta_model_dict)
 
-    logger.debug(meta_model)
-    print(meta_model.pretty())
+    logger.debug(meta_model.pretty())
 
     generated_code = generate_meta_model_api(meta_model=meta_model)
 
