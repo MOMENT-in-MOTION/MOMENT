@@ -6,9 +6,8 @@ from pathlib import Path
 from metamodel.parser import parse_meta_model
 from metamodel.codegenerator import (
     generate_meta_model_api,
-    get_formatter,
-    build_engine,
-    create_descriptors
+    write_generated_code,
+    get_formatter
 )
 from shared.load_json_as_dict import load_json_as_dict
 from shared.configure_logging import configure_logging
@@ -47,16 +46,14 @@ def main():
     api_config = load_json_as_dict(path=Path("src/api_config.json"))
     formatter = get_formatter(api_config["NamingConvention"])
 
-    j2_engine = build_engine(TEMPLATES_DIR)
-    context = create_descriptors(meta_model=meta_model)
-    context.update({"api_config": api_config})
+    generated_code = generate_meta_model_api(
+        meta_model=meta_model,
+        api_config=api_config,
+        formatter=formatter,
+        templates_dir=TEMPLATES_DIR
+    )
 
-    generated_code = generate_meta_model_api(j2_engine, context, formatter)
-
-    for name, code in generated_code.items():
-
-        with open(f"{METAMODEL_API_DIR}/{name}.py", "w", encoding="UTF-8") as text_file:
-            text_file.write(code)
+    write_generated_code(generated_code=generated_code, output_dir=METAMODEL_API_DIR)
 
 
 if __name__ == "__main__":

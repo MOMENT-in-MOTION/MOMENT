@@ -1,6 +1,6 @@
 from typing import Callable
 
-from .i_formatter import Formatter
+from .formatter import Formatter
 from .helpers import to_camel_case
 
 class CamelCaseFormatter(Formatter):

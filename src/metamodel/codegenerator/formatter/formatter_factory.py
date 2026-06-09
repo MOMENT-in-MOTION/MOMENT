@@ -1,6 +1,6 @@
 from .camel_case_formatter import CamelCaseFormatter
 from .snake_case_formatter import SnakeCaseFormatter
-from .i_formatter import Formatter
+from .formatter import Formatter
 
 def get_formatter(format_style: str) -> Formatter:
     """

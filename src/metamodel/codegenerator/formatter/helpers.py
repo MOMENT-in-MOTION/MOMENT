@@ -15,7 +15,9 @@ def _to_words(name: str) -> list[str]:
     """
     # camelCase / PascalCase: insert a space before an uppercase that follows a lowercase/digit
     s = re.sub(r'([a-z0-9])([A-Z])', r'\1 \2', name)
-    # Acronym runs: "HTMLParser" → "HTML Parser"
+    # Only splits where an acronym is immediately followed by a Title-case word
+    # (e.g. "HTMLParser" → "HTML Parser"). Pure acronyms like "MUX" are left
+    # untouched because there is no uppercase+lowercase boundary after them.
     s = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1 \2', s)
     # Treat underscores as word boundaries
     s = s.replace('_', ' ')
