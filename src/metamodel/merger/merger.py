@@ -10,6 +10,16 @@ logger = logging.getLogger(__name__)
 
 
 def merge_meta_models(path: Path) -> dict[str] | None:
+    """Entry point for the merger that loads the main Meta-Model and all available
+    sub-Meta-Models, merges them and returns the merged Meta-Model as a dictionary.
+
+    Args:
+        path (Path): The path to the directory containing the Meta-Model files.
+
+    Returns:
+        dict[str, list]: The merged Meta-Model as a dictionary.
+    """
+
     merged_meta_model: dict = {"name": "", "enums": [], "classes": []}
     meta_models: dict = {}
 
@@ -23,6 +33,7 @@ def merge_meta_models(path: Path) -> dict[str] | None:
 
 
 def _merge_model(name: str, merged_meta_model: dict, meta_models: dict):
+    """Recursively merges the Meta-Model with the given name into the merged_meta_model."""
     logger.debug(f"Merging model with name '{name}.'")
 
     enums = meta_models[name]["model_dict"]["enums"]
@@ -38,6 +49,7 @@ def _merge_model(name: str, merged_meta_model: dict, meta_models: dict):
 
 
 def _find_imports(classes: list, merged_meta_model: dict, meta_models: dict):
+    """Finds all imports in the given classes and merges the corresponding Meta-Models if they have not been merged yet."""
     for cls in classes:
         for element in cls["attributes"] + cls["associations"]:
             if "import" in element.keys():
@@ -60,13 +72,14 @@ def _find_imports(classes: list, merged_meta_model: dict, meta_models: dict):
 
 
 def _prefix_names(list_of_element_dicts: list[dict], prefix: str):
+    """Prefixes the names of the given list of element dictionaries with the given prefix."""
     for element_dict in list_of_element_dicts:
         element_dict["name"] = prefix + element_dict["name"]
     return list_of_element_dicts
 
 
 def _load_available_sub_meta_models(path: Path, meta_models: dict):
-
+    """Loads all available sub-Meta-Models from the given path and adds them to the meta-models dictionary."""
     for path in _get_sub_model_path(path=path).glob("*.json"):
         logger.debug(f"Found Sub-Meta-Model: {path.name}")
         model = load_json_as_dict(path)
@@ -90,7 +103,7 @@ def _load_available_sub_meta_models(path: Path, meta_models: dict):
 
 
 def _load_main(path: Path, meta_models: dict) -> str:
-
+    """Loads the main Meta-Model from the given path and adds it to the meta-models dictionary."""
     model = load_json_as_dict(path)
     model_name = model["name"]
     prefix = ""
@@ -112,6 +125,7 @@ def _load_main(path: Path, meta_models: dict) -> str:
 
 
 def _is_valid_meta_model(model: dict):
+    """Tests if the given Model-Dictionary contains all nessesary keys to be used as a Meta-Model."""
     result = False
     required_keys = {"name", "classes", "enums"}
 
@@ -125,20 +139,23 @@ def _is_valid_meta_model(model: dict):
 
 
 def _get_sub_model_path(path: Path) -> Path:
+    """Returns the Path to the dictionary, containing the Sub-Meta-Models."""
     return path.parent / "sub_meta_models"
 
 
 def _normalize(name: str) -> str:
+    """Replaces common seperators from the given Name with a space."""
     return re.sub(r"[-_\s]+", " ", name.strip())
 
 
 def _resolve_camel_case(name: str) -> list[str]:
+    """Uses a Regular Expression, to seperate words that are chained together with camel case."""
     return CAMEL_CASE_PATTERN.findall(name)
 
 
 def _split_words(name: str) -> list[str]:
+    """Seperates the given name into its individual words by first normalizing it and then ressolving camel case."""
     normalized = _normalize(name=name)
-
     words = []
 
     for word in normalized.split():
@@ -147,6 +164,8 @@ def _split_words(name: str) -> list[str]:
     return words
 
 def _create_acronym(words: list[str], level: int = 1) -> str:
+    """Creates an acronym from the given list of words by taking the first 'level' characters of each word.
+    If a word is in uppercase and shorter than 4 characters, it is directly added to the acronym."""
     precise_name = []
 
     for word in words:
@@ -157,6 +176,7 @@ def _create_acronym(words: list[str], level: int = 1) -> str:
     return "".join(precise_name)
 
 def _generate_acronym(name: str, existing_prefixes: list[str]):
+    """Generates a unique acronym for the given name by splitting it into words and creating an acronym."""
     words = _split_words(name)
     level = 1
 
