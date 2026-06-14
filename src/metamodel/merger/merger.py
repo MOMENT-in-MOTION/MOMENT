@@ -1,15 +1,16 @@
+from __future__ import annotations
 from pathlib import Path
 import re
 import logging
-import sys
 from shared.load_json_as_dict import load_json_as_dict
 from metamodel.parser.helper import structure_data
+from metamodel.typing_helper import MetaModelDict, MetaModelInfoDict, MetaClassDict, MetaEnumDict
 
 CAMEL_CASE_PATTERN = re.compile(r"[A-Z]+(?=[A-Z][a-z]|$)|[A-Z]?[a-z]+|\d+")
 logger = logging.getLogger(__name__)
 
 
-def merge_meta_models(path: Path) -> dict[str] | None:
+def merge_meta_models(path: Path) -> MetaModelDict:
     """Entry point for the merger that loads the main Meta-Model and all available
     sub-Meta-Models, merges them and returns the merged Meta-Model as a dictionary.
 
@@ -17,11 +18,11 @@ def merge_meta_models(path: Path) -> dict[str] | None:
         path (Path): The path to the directory containing the Meta-Model files.
 
     Returns:
-        dict[str, list]: The merged Meta-Model as a dictionary.
+        MetaModelDict: The merged Meta-Model as a dictionary.
     """
 
-    merged_meta_model: dict = {"name": "", "enums": [], "classes": []}
-    meta_models: dict = {}
+    merged_meta_model: MetaModelDict = {"name": "", "enums": [], "classes": []}
+    meta_models: dict[str, MetaModelInfoDict] = {}
 
     main_name = _load_main(path, meta_models)
     merged_meta_model["name"] = main_name
@@ -32,7 +33,11 @@ def merge_meta_models(path: Path) -> dict[str] | None:
     return merged_meta_model
 
 
-def _merge_model(name: str, merged_meta_model: dict, meta_models: dict):
+def _merge_model(
+    name: str,
+    merged_meta_model: MetaModelDict,
+    meta_models: dict[str, MetaModelInfoDict],
+) -> None:
     """Recursively merges the Meta-Model with the given name into the merged_meta_model."""
     logger.debug(f"Merging model with name '{name}.'")
 
@@ -48,12 +53,19 @@ def _merge_model(name: str, merged_meta_model: dict, meta_models: dict):
     _find_imports(classes, merged_meta_model, meta_models)
 
 
-def _find_imports(classes: list, merged_meta_model: dict, meta_models: dict):
-    """Finds all imports in the given classes and merges the corresponding Meta-Models if they have not been merged yet."""
+def _find_imports(
+    classes: list[MetaClassDict],
+    merged_meta_model: MetaModelDict,
+    meta_models: dict[str, MetaModelInfoDict],
+) -> None:
+    """Finds all imports in the given classes and merges the corresponding
+    Meta-Models if they have not been merged yet."""
     for cls in classes:
         for element in cls["attributes"] + cls["associations"]:
-            if "import" in element.keys():
-                name = element.pop("import")
+            if "import_" in element.keys():
+                name = element.pop("import_",None)
+                if name is None:
+                    continue
                 if name in meta_models.keys():
                     model = meta_models[name]
                     prefix = model["prefix"]
@@ -71,71 +83,56 @@ def _find_imports(classes: list, merged_meta_model: dict, meta_models: dict):
                     )
 
 
-def _prefix_names(list_of_element_dicts: list[dict], prefix: str):
+def _prefix_names(
+    list_of_element_dicts: list[MetaClassDict | MetaEnumDict], prefix: str
+) -> list[MetaClassDict | MetaEnumDict]:
     """Prefixes the names of the given list of element dictionaries with the given prefix."""
     for element_dict in list_of_element_dicts:
         element_dict["name"] = prefix + element_dict["name"]
+        print(f"Prefixed element with name '{element_dict['name']}' with prefix '{prefix}'.")
     return list_of_element_dicts
 
 
-def _load_available_sub_meta_models(path: Path, meta_models: dict):
-    """Loads all available sub-Meta-Models from the given path and adds them to the meta-models dictionary."""
-    for path in _get_sub_model_path(path=path).glob("*.json"):
-        logger.debug(f"Found Sub-Meta-Model: {path.name}")
-        model = load_json_as_dict(path)
+def _load_available_sub_meta_models(
+    path: Path, meta_models: dict[str, MetaModelInfoDict]
+) -> None:
+    """Loads all available sub-Meta-Models from the given path and adds them
+    to the meta-models dictionary."""
+    for model_path in _get_sub_model_path(path=path).glob("*.json"):
+        logger.debug(f"Found Sub-Meta-Model: {model_path.name}")
+        model = structure_data(load_json_as_dict(model_path))
         model_name = model["name"]
-        prefix = _generate_acronym(
+        prefix = _generate_unique_acronym(
             model_name, [model["prefix"][:-1] for model in meta_models.values()]
         )
-        if _is_valid_meta_model(model):
-            meta_models[model_name] = {
-                "prefix": prefix,
-                "model_dict": model,
-                "merged": False,
-            }
-            logger.debug(
-                f"Added Meta-Model with Name: '{model_name}' with prefix: '{prefix[:-1]}' to avilable Models."
-            )
-        else:
-            logger.info(
-                f"The Meta-Model with the Title '{model_name}' from the file named '{path.stem}'"
-            )
 
-
-def _load_main(path: Path, meta_models: dict) -> str:
-    """Loads the main Meta-Model from the given path and adds it to the meta-models dictionary."""
-    model = load_json_as_dict(path)
-    model_name = model["name"]
-    prefix = ""
-    if _is_valid_meta_model(model):
         meta_models[model_name] = {
             "prefix": prefix,
             "model_dict": model,
             "merged": False,
         }
         logger.debug(
-            f"Added the Main-Meta-Model with Name: {model_name} to avilable Models."
+            f"Added Meta-Model with Name: '{model_name}' with prefix: '{prefix[:-1]}' to "
+            f"available Models."
         )
-    else:
-        logger.info(
-            f"The Main-Meta-Model with the Title {model_name} from the file named {path.stem} "
-            "could not be loaded."
-        )
-    return model_name
 
 
-def _is_valid_meta_model(model: dict):
-    """Tests if the given Model-Dictionary contains all nessesary keys to be used as a Meta-Model."""
-    result = False
-    required_keys = {"name", "classes", "enums"}
+def _load_main(path: Path, meta_models: dict[str, MetaModelInfoDict]) -> str:
+    """Loads the main Meta-Model from the given path and adds it to the meta-models dictionary."""
+    model: MetaModelDict = structure_data(load_json_as_dict(path))
+    model_name = model["name"]
+    prefix = ""
 
-    if required_keys.issubset(model.keys()):
-        return True
-    logger.info(
-        f"The provided Meta-Model is missing one of the required keys: {required_keys}"
+    meta_models[model_name] = {
+        "prefix": prefix,
+        "model_dict": model,
+        "merged": False,
+    }
+    logger.debug(
+        f"Added the Main-Meta-Model with Name: {model_name} to avilable Models."
     )
 
-    return result
+    return model_name
 
 
 def _get_sub_model_path(path: Path) -> Path:
@@ -154,7 +151,8 @@ def _resolve_camel_case(name: str) -> list[str]:
 
 
 def _split_words(name: str) -> list[str]:
-    """Seperates the given name into its individual words by first normalizing it and then ressolving camel case."""
+    """Seperates the given name into its individual words by first normalizing it
+    and then ressolving camel case."""
     normalized = _normalize(name=name)
     words = []
 
@@ -163,9 +161,12 @@ def _split_words(name: str) -> list[str]:
 
     return words
 
+
 def _create_acronym(words: list[str], level: int = 1) -> str:
-    """Creates an acronym from the given list of words by taking the first 'level' characters of each word.
-    If a word is in uppercase and shorter than 4 characters, it is directly added to the acronym."""
+    """Creates an acronym from the given list of words by taking the first 'level'
+    characters of each word. If a word is in uppercase and shorter than 4 characters,
+    it is directly added to the acronym.
+    """
     precise_name = []
 
     for word in words:
@@ -175,8 +176,10 @@ def _create_acronym(words: list[str], level: int = 1) -> str:
             precise_name.append(word[:level].capitalize())
     return "".join(precise_name)
 
-def _generate_acronym(name: str, existing_prefixes: list[str]):
-    """Generates a unique acronym for the given name by splitting it into words and creating an acronym."""
+
+def _generate_unique_acronym(name: str, existing_prefixes: list[str]) -> str:
+    """Generates a unique acronym for the given name by splitting it into
+    words and creating an acronym."""
     words = _split_words(name)
     level = 1
 

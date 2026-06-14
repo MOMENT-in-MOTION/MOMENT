@@ -1,33 +1,47 @@
+from metamodel.typing_helper import MetaModelDict, MetaClassDict
 
-
-def structure_data(unstructured: dict) -> dict[str, list]:
+def structure_data(unstructured: MetaModelDict) -> MetaModelDict:
     """Collect the relevant data in a structured dictionary.
 
     Args:
-        unstructured (dict): Unstructured dictionary.
+        unstructured (MetaModelDict): Unstructured dictionary.
 
     Raises:
         KeyError: The unstructured dictionary contains unexpected keys.
 
     Returns:
-        dict[str, list]: The structured dictionary.
+        MetaModelDict: The structured dictionary.
     """
-    structured = {"name": [], "enums": [], "classes": []}
+    names = []
+    enums = []
+    classes = []
 
     for key, value in unstructured.items():
         key_lower = key.lower()
         match key_lower:
             case k if "name" in k:
-                structured["name"].append(value)
+                names.append(value)
             case k if "enums" in k:
-                structured["enums"] += value
+                enums += value
             case k if "classes" in k:
-                structured["classes"] += value
+                classes += value
             case _:
                 raise ValueError(f"Unexpected key '{key}' with value '{value}'.")
 
-    if len(structured["name"]) > 1:
-        names = structured["name"]
+    if len(names) > 1:
         raise ValueError(f"Multiple names where given: {names}")
 
-    return structured
+    _rename_import_indicator(classes_list=classes)
+
+    return {"name": names[0], "enums": enums, "classes": classes}
+
+def _rename_import_indicator(classes_list: list[MetaClassDict]) -> None:
+    """Renames the key 'import' to 'import_' in all dictionaries in the given list.
+
+    Args:
+        classes_list (list[MetaClassDict]): The list of dictionaries to rename.
+    """
+    for cls in classes_list:
+        for element_dict in cls["attributes"] + cls["associations"]:
+            if "import" in element_dict:
+                element_dict["import_"] = element_dict.pop("import")

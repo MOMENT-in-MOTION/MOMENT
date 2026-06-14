@@ -5,8 +5,8 @@ from pathlib import Path
 
 from metamodel.parser import parse_meta_model
 from metamodel.codegenerator import generate_meta_model_api
-from shared.configure_logging import configure_logging
 from metamodel.merger import merge_meta_models
+from shared.configure_logging import configure_logging
 
 from config import METAMODEL_API_DIR
 logger = logging.getLogger(__name__)
