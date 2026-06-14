@@ -1,4 +1,4 @@
-from metamodel.typing_helper import MetaModelDict, MetaClassDict
+from metamodel.typing_helpers.typed_dicts import MetaModelDict, MetaClassDict
 
 def structure_data(unstructured: MetaModelDict) -> MetaModelDict:
     """Collect the relevant data in a structured dictionary.

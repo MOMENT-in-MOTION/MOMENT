@@ -1,2 +1,2 @@
-# TODO First, we need to check which functions are necessary. Then we can determine the necessary version.
+# TODO: First, we need to determine which functions are necessary. Then, we can determine which version is necessary.
 jinja2

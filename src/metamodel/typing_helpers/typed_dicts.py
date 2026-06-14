@@ -1,6 +1,10 @@
 from __future__ import annotations
 from typing import TypedDict
-from typing_extensions import NotRequired
+import sys
+if sys.version_info >= (3, 11):
+    from typing import NotRequired  # Available in stdlib on 3.11+
+else:
+    from typing_extensions import NotRequired  # Backport for older versions
 
 
 class ImportableDict(TypedDict):
@@ -9,7 +13,8 @@ class ImportableDict(TypedDict):
 
 
 class MetaModelInfoDict(TypedDict):
-    """A dictionary containing the prefix, model dictionary, and merge status of a Meta-Model."""
+    """A dictionary containing the prefix, model dictionary,
+    and merge status of a Meta-Model."""
     prefix: str
     model_dict: MetaModelDict
     merged: bool
@@ -23,14 +28,16 @@ class MetaModelDict(TypedDict):
 
 
 class MetaClassDict(TypedDict):
-    """A dictionary containing the name, attributes, and associations of a Meta-Class."""
+    """A dictionary containing the name, attributes, and associations
+    of a Meta-Class."""
     name: str
     attributes: list[MetaAttributesDict]
     associations: list[MetaAssociationsDict]
 
 
 class MetaAttributesDict(ImportableDict):
-    """A dictionary containing the name, type, multiplicity, and default value of a Meta-Class attribute."""
+    """A dictionary containing the name, type, multiplicity, and default
+    value of a Meta-Class attribute."""
     name: str
     attribute_type: str
     multiplicity: str
@@ -38,7 +45,8 @@ class MetaAttributesDict(ImportableDict):
 
 
 class MetaAssociationsDict(ImportableDict):
-    """A dictionary containing the name, multiplicity, type, and target of a Meta-Class association."""
+    """A dictionary containing the name, multiplicity, type, and target
+    of a Meta-Class association."""
     name: str
     multiplicity: str
     association_type: str

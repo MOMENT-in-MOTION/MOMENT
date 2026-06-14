@@ -13,7 +13,7 @@ from metameta.m_m_m_classes import (
     AssociationOptions,
     TypeOptions,
 )
-from metamodel.typing_helper import (
+from metamodel.typing_helpers.typed_dicts import (
     MetaModelDict,
     MetaAssociationsDict,
     MetaClassDict,

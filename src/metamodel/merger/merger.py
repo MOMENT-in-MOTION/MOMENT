@@ -4,7 +4,12 @@ import re
 import logging
 from shared.load_json_as_dict import load_json_as_dict
 from metamodel.parser.helper import structure_data
-from metamodel.typing_helper import MetaModelDict, MetaModelInfoDict, MetaClassDict, MetaEnumDict
+from metamodel.typing_helpers.typed_dicts import (
+    MetaModelDict,
+    MetaModelInfoDict,
+    MetaClassDict,
+    MetaEnumDict
+)
 
 CAMEL_CASE_PATTERN = re.compile(r"[A-Z]+(?=[A-Z][a-z]|$)|[A-Z]?[a-z]+|\d+")
 logger = logging.getLogger(__name__)
