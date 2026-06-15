@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Callable
 
-from metameta.m_m_m_classes import TypeOptions
+from ....metameta.m_m_m_classes import TypeOptions
 
 from .helpers import to_pascal_case, to_upper_snake_case
 

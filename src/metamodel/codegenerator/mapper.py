@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC
 from dataclasses import dataclass
 
-from metameta.m_m_m_classes import (
+from ...metameta.m_m_m_classes import (
     MetaClass,
     MetaEnum,
     Association,

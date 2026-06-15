@@ -13,10 +13,40 @@ pip install -r requirements.txt
 Currently the programm is executable via the commandline. To run it enter:
 
 ```bash
-python .\src\main.py <path-to-meta-model>
+python -m src.main <path-to-meta-model>
 ```
 
 The meta-model has to be a .json file.
+
+## Testing
+
+Run all tests using pytest:
+
+```bash
+python -m pytest
+```
+
+Run a specific test file:
+
+```bash
+python -m pytest tests/codegenerator/test_codegenerator.py -v
+```
+
+### Code Coverage
+
+Run tests with coverage report:
+
+```bash
+python -m pytest --cov=src
+```
+
+Generate HTML coverage report:
+
+```bash
+python -m pytest --cov=src --cov-report=html
+```
+
+View the HTML report by opening `htmlcov/index.html` in your browser.
 
 ## API Configuration
 

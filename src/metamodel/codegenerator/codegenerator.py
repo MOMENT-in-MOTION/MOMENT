@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from metameta.m_m_m_classes import MetaModel
+from ...metameta.m_m_m_classes import MetaModel
 
 from .jinja_engine import render, build_engine
 from .mapper import create_descriptors
