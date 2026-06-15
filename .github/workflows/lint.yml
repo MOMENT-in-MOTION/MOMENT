@@ -26,9 +26,24 @@ jobs:
  
       - name: Run pylint
         run: |
-          files=$(git ls-files '*.py')
-          if [ -z "$files" ]; then
-            echo "No Python files found skipping pylint."
-          else
-            pylint $files
+          src_files=$(git ls-files 'src/*.py' 'src/**/*.py')
+          test_files=$(git ls-files 'tests/*.py' 'tests/**/*.py')
+
+           if [ -z "$src_files" ] && [ -z "$test_files" ]; then
+            echo "No Python files found, skipping pylint."
+            exit 0
           fi
+
+          exit_code=0
+
+          if [ -n "$src_files" ]; then
+            echo "Linting src/..."
+            python -m pylint --source-roots=. src/ || exit_code=$?
+          fi
+
+          if [ -n "$test_files" ]; then
+            echo "Linting tests/..."
+            python -m pylint --source-roots=. tests/ || exit_code=$?
+          fi
+
+          exit $exit_code

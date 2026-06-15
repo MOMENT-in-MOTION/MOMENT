@@ -1,4 +1,5 @@
 [MASTER]
+source-roots = .
 # Use multiple processes to speed up Pylint
 jobs=1
 
@@ -22,7 +23,11 @@ disable=
     too-many-statements,
     fixme,
     broad-except,
-    logging-fstring-interpolation
+    logging-fstring-interpolation,
+    # ignore redefined-outer-name warnings in tests
+    redefined-outer-name,
+    # igonre windows line ending errors
+    unexpected-line-ending-format
 
 # Enable specific checkers
 enable=
@@ -164,6 +169,11 @@ max-statements=50
 
 # Minimum number of public methods for a class (see R0903)
 min-public-methods=2
+
+
+[tool.pylint.DESIGN]
+# ignore redefined-outer-name warnings in tests
+disable = redefined-outer-name
 
 
 [EXCEPTIONS]

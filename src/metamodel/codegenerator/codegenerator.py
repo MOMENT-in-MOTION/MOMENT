@@ -1,5 +1,7 @@
-from metameta.m_m_m_classes import MetaModel
-from config import TEMPLATES_DIR
+from pathlib import Path
+
+from ...metameta.m_m_m_classes import MetaModel
+from ...config import TEMPLATES_DIR
 
 from .mapper import create_descriptors
 from .jinja_engine import build_engine, render

@@ -1,7 +1,6 @@
 import logging
 from enum import Enum
-from metamodel.parser.helper import structure_data
-from metameta.m_m_m_classes import (
+from ...metameta.m_m_m_classes import (
     MetaClass,
     MetaEnum,
     MetaEnumLiteral,
@@ -13,6 +12,8 @@ from metameta.m_m_m_classes import (
     AssociationOptions,
     TypeOptions,
 )
+
+from .helper import structure_data
 
 CLASSES: dict[str, MetaClass] = {}
 ENUMS: dict[str, MetaEnum] = {}
