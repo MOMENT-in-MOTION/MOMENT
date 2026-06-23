@@ -9,6 +9,7 @@ from metamodel.merger import merge_meta_models
 from shared.configure_logging import configure_logging
 
 from config import METAMODEL_API_DIR
+from runtime_config import RuntimeConfig
 logger = logging.getLogger(__name__)
 
 
@@ -23,16 +24,18 @@ def main():
         print("Path must be to json file!")
         sys.exit(1)
 
-    path = Path(sys.argv[1])
+    config = RuntimeConfig(
+        metamodel_dir = Path(sys.argv[1])
+    )
     configure_logging(verbose = True)
 
     try:
-        meta_model_dict = merge_meta_models(path=path)
+        meta_model_dict = merge_meta_models(path=config.metamodel_dir, config=config)
     except IOError as e:
         print(getattr(e, "message", str(e)))
         sys.exit(1)
 
-    print(f"Successfully loaded metamodel: {path}")
+    logger.info(f"Successfully loaded metamodel: {config.metamodel_dir}")
 
     meta_model = parse_meta_model(meta_model_dict=meta_model_dict)
 
