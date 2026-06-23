@@ -3,10 +3,18 @@ from __future__ import annotations
 from abc import ABC
 from dataclasses import dataclass
 from pathlib import Path
-from shared.load_json_as_dict import load_json_as_dict
 
-# pylint: disable=W0614, W0401
-from metameta.m_m_m_classes import *
+from ...shared.load_json_as_dict import load_json_as_dict
+
+from ...metameta.m_m_m_classes import (
+    MetaClass,
+    MetaEnum,
+    Association,
+    TypeOptions,
+    Attribute,
+    MetaModel,
+    MultiplicityOptions
+)
 
 class Descriptor(ABC):
     """
