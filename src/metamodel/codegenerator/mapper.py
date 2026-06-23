@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from abc import ABC
 from dataclasses import dataclass
+from pathlib import Path
+from shared.load_json_as_dict import load_json_as_dict
 
 # pylint: disable=W0614, W0401
 from metameta.m_m_m_classes import *
@@ -289,10 +291,12 @@ def create_descriptors(meta_model: MetaModel) -> dict[str, list[Descriptor]]:
     class_views: list[ClassDescriptor] = []
     enum_views: list[EnumDescriptor] = []
 
+    api_config = load_json_as_dict(path=Path("src/api_config.json"))
+
     for cls in meta_model.classes:
         class_views.append(create_class_descriptor(cls))
 
     for enum in meta_model.enums:
         enum_views.append(create_enum_descriptor(enum))
 
-    return {"classes": class_views, "enums": enum_views}
+    return {"classes": class_views, "enums": enum_views, "api_config": api_config}
