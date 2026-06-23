@@ -1,4 +1,4 @@
-from metameta.m_m_m_dicts import MetaModelDict, MetaClassDict
+from ...metameta.m_m_m_dicts import MetaModelDict, MetaClassDict
 
 def structure_data(unstructured: MetaModelDict) -> MetaModelDict:
     """Collect the relevant data in a structured dictionary.

@@ -3,13 +3,15 @@ import logging
 
 from pathlib import Path
 
-from metamodel.parser import parse_meta_model
-from metamodel.codegenerator import generate_meta_model_api
-from metamodel.merger import merge_meta_models
-from shared.configure_logging import configure_logging
+from .runtime_config import RuntimeConfig
+from .config import METAMODEL_API_DIR
 
-from config import METAMODEL_API_DIR
-from runtime_config import RuntimeConfig
+from .metamodel.parser import parse_meta_model
+from .metamodel.codegenerator import generate_meta_model_api
+from .shared.load_json_as_dict import load_json_as_dict
+from .shared.configure_logging import configure_logging
+from .metamodel.merger import merge_meta_models
+
 logger = logging.getLogger(__name__)
 
 

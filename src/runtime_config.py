@@ -4,6 +4,7 @@ from pathlib import Path
 
 @dataclass
 class RuntimeConfig:
+    """Class to hold runtime configuration for the application."""
     metamodel_dir: Path
 
     @property

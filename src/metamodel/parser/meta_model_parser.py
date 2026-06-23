@@ -1,7 +1,7 @@
 import logging
 from typing import TypeVar
 from enum import Enum
-from metameta.m_m_m_classes import (
+from ...metameta.m_m_m_classes import (
     MetaClass,
     MetaEnum,
     MetaEnumLiteral,
@@ -13,7 +13,7 @@ from metameta.m_m_m_classes import (
     AssociationOptions,
     TypeOptions,
 )
-from metameta.m_m_m_dicts import (
+from ...metameta.m_m_m_dicts import (
     MetaModelDict,
     MetaAssociationsDict,
     MetaClassDict,

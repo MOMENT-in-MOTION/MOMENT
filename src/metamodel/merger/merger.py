@@ -1,11 +1,11 @@
 from __future__ import annotations
 from pathlib import Path
 import logging
-from shared.load_json_as_dict import load_json_as_dict
-from metamodel.merger.structure import structure_data
-from runtime_config import RuntimeConfig
+from ...shared.load_json_as_dict import load_json_as_dict
+from .structure import structure_data
+from ...runtime_config import RuntimeConfig
 from .acronym_generator import generate_unique_acronym
-from metameta.m_m_m_dicts import (
+from ...metameta.m_m_m_dicts import (
     MetaModelDict,
     MetaModelInfoDict,
     MetaClassDict,
