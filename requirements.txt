@@ -1,2 +1,4 @@
 # TODO: First, we need to determine which functions are necessary. Then, we can determine which version is necessary.
 jinja2
+pytest
+pytest-cov

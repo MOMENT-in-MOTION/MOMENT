@@ -1,6 +1,6 @@
 {% extends "base_template.py.j2" %}
 {% from "macros/field_macro.j2" import render_field %}
-
+{'#- This template generates Python dataclasses based on the provided class descriptors. It can be configured using the api_config to conform to user specific api design preferences -#}
 {% block imports %}
 from __future__ import annotations
 from dataclasses import dataclass
@@ -10,10 +10,56 @@ from enum_code import *
 {% block body %}
 {% for cls in classes %}
 @dataclass
-class {{ cls.class_name }}:
-    {% for f in cls.sorted_fields %}
-    {{ render_field(f) }}
+class {{ cls.class_name }}: 
+    {# Generate a docstring listing the fields and their types #}
+    """
+    Generated dataclass for {{ cls.class_name }} 
+    Attributes:
+        {% for f in cls.sorted_fields %}
+        {{ f.field_name }}: {{ f.type_hint }}{% if f.has_default %} = {{ f.rendered_default }}{% endif %} 
     {% endfor %}
+    """
+
+    {% for f in cls.sorted_fields %}
+    {#- If strict privacy is enabled and this is a non-association field, make it private by prefixing with __ -#}
+    {%- if api_config.StrictPrivacy == "true" -%}
+        {% if api_config.UseDoubleUnderscore == "true" %}
+    __{{ render_field(f) }}
+        {% else %}
+    _{{ render_field(f) }}
+        {% endif %}
+    {% else %}
+    {{ render_field(f) }}
+    {% endif %}
+    {% endfor %}
+
+
+    {% for f in cls.sorted_fields %}
+    {#- Generate getters and setters for non-association fields based on configuration -#}
+    {% if f.is_association == false %}
+    {% if api_config.GenerateGetters == "true" %}
+    def get_{{f.field_name}}(self) -> {{f.type_hint}}:
+        """generated getter for {{f.field_name}}"""
+        return self.{{f.field_name}}
+    {% endif %}
+    {% if api_config.GenerateSetters == "true" %}
+    def set_{{f.field_name}}(self, value: {{f.type_hint}}) -> None:
+        """
+        generated setter for {{f.field_name}}
+        
+        Args:
+            value: The new value to assign to the "{{f.field_name}}" attribute
+        """
+        {% if api_config.ExplicitTypeSafety == "true" %}
+        if (type(value) != {{f.type_hint}}):
+            raise TypeError(f"Expected type {{f.type_hint}} for field '{{f.field_name}}', got {type(value)}")
+        {% endif %}
+        self.{{f.field_name}} = value
+    {% endif %}
+    {% endif %}
+    {% endfor %}
+
+
 {% if not loop.last %}
 
 {% endif %}

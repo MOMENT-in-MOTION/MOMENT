@@ -1,7 +1,7 @@
 import logging
 from typing import TypeVar
 from enum import Enum
-from metameta.m_m_m_classes import (
+from ...metameta.m_m_m_classes import (
     MetaClass,
     MetaEnum,
     MetaEnumLiteral,
@@ -20,6 +20,8 @@ from metameta.m_m_m_dicts import (
     MetaAttributesDict,
     MetaEnumLiteralDict,
 )
+
+from .helper import structure_data
 
 CLASSES: dict[str, MetaClass] = {}
 ENUMS: dict[str, MetaEnum] = {}
