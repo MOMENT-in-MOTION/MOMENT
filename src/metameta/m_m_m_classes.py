@@ -23,6 +23,18 @@ class MultiplicityOptions(str, Enum):
     )
     OPTIONAL = "OPTIONAL"
 
+    @property
+    def is_list(self) -> bool:
+        return self in (MultiplicityOptions.AT_LEAST_ONE, MultiplicityOptions.ANY)
+
+    @property
+    def is_optional(self) -> bool:
+        return self in (
+            MultiplicityOptions.ANY,
+            MultiplicityOptions.ZERO_OR_ONE,
+            MultiplicityOptions.OPTIONAL
+        )
+
 
 class AssociationOptions(str, Enum):
     """Association type options."""
