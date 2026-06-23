@@ -3,10 +3,14 @@ import logging
 
 from pathlib import Path
 
-from .config import METAMODEL_API_DIR
+from .config import METAMODEL_API_DIR, TEMPLATES_DIR
 
 from .metamodel.parser import parse_meta_model
-from .metamodel.codegenerator import generate_meta_model_api
+from .metamodel.codegenerator import (
+    generate_meta_model_api,
+    write_generated_code,
+    get_formatter
+)
 from .shared.load_json_as_dict import load_json_as_dict
 from .shared.configure_logging import configure_logging
 
@@ -40,12 +44,17 @@ def main():
     logger.debug(meta_model)
     print(meta_model.pretty())
 
-    generated_code = generate_meta_model_api(meta_model=meta_model)
+    api_config = load_json_as_dict(path=Path("src/api_config.json"))
+    formatter = get_formatter(api_config["NamingConvention"])
 
-    for name, code in generated_code.items():
+    generated_code = generate_meta_model_api(
+        meta_model=meta_model,
+        api_config=api_config,
+        formatter=formatter,
+        templates_dir=TEMPLATES_DIR
+    )
 
-        with open(f"{METAMODEL_API_DIR}/{name}.py", "w", encoding="UTF-8") as text_file:
-            text_file.write(code)
+    write_generated_code(generated_code=generated_code, output_dir=METAMODEL_API_DIR)
 
 
 if __name__ == "__main__":
