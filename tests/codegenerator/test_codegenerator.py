@@ -15,8 +15,9 @@ from src.metameta.m_m_m_classes import (
 )
 
 from src.metamodel.codegenerator.codegenerator import (
-    generate_meta_model_api,
+    generate_meta_model_api
 )
+from src.metamodel.codegenerator.formatter import get_formatter
 
 
 @pytest.fixture
@@ -101,8 +102,14 @@ class TestCodeGeneratorIntegration:
                 "# Enum Template\n{{ enums }}"
             )
 
+            api_config = {"NamingConvention": "snake_case"}
+            formatter = get_formatter(api_config["NamingConvention"])
+
             result = generate_meta_model_api(
-                meta_model=meta_model_with_associations
+                meta_model=meta_model_with_associations,
+                api_config=api_config,
+                formatter=formatter,
+                templates_dir=templates_dir
             )
 
             assert isinstance(result, dict)
