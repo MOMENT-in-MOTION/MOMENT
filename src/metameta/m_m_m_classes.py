@@ -185,7 +185,7 @@ class Attribute(MetaElement):
     name: str
     multiplicity: MetaEnumLiteral
     attribute_type: MetaEnumLiteral
-    default_value: Any | None
+    default_value: Any | None = None
 
     def validate(self) -> None:
         """Validate the attribute.
@@ -206,12 +206,14 @@ class Association(MetaElement):
         multiplicity: Association multiplicity.
         association_type: Association type.
         association_target: Target element of the association.
+        default_value: Optional default value.
     """
 
     name: str
     multiplicity: MultiplicityOptions
     association_type: AssociationOptions
     association_target: MetaClass | MetaEnum
+    default_value: Any | None = None
 
     def validate(self) -> None:
         """Validate the association.
@@ -239,6 +241,7 @@ class OpenAssociation(MetaElement):
     multiplicity: MultiplicityOptions
     association_type: AssociationOptions
     association_target_name: str
+    default_value: Any | None = None
 
     def validate(self) -> None:
         """Validate the open association.
@@ -263,6 +266,7 @@ class OpenAssociation(MetaElement):
             multiplicity=self.multiplicity,
             association_type=self.association_type,
             association_target=final_target,
+            default_value=self.default_value
         )
 
 
