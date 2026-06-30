@@ -1,4 +1,5 @@
 import logging
+from typing import TypeVar
 from enum import Enum
 from ...metameta.m_m_m_classes import (
     MetaClass,
@@ -12,16 +13,21 @@ from ...metameta.m_m_m_classes import (
     AssociationOptions,
     TypeOptions,
 )
-
-from .helper import structure_data
+from ...metameta.m_m_m_dicts import (
+    MetaModelDict,
+    MetaAssociationsDict,
+    MetaClassDict,
+    MetaAttributesDict,
+    MetaEnumLiteralDict,
+)
 
 CLASSES: dict[str, MetaClass] = {}
 ENUMS: dict[str, MetaEnum] = {}
 logger = logging.getLogger(__name__)
+E = TypeVar("E", bound=Enum)
 
 
-def parse_meta_model(
-    meta_model_dict: dict[str, str]) -> MetaModel:
+def parse_meta_model(meta_model_dict: MetaModelDict) -> MetaModel:
     """Entry point for the parser builds a MetaModel from the given dict.
 
     Args:
@@ -33,18 +39,18 @@ def parse_meta_model(
         MetaModel: The parsed MetaModel instance.
     """
 
-    return _parse(structure_data(meta_model_dict))
+    return _parse(meta_model_dict)
 
 
-def _parse(meta_model_dict: dict) -> MetaModel:
+def _parse(meta_model_dict: MetaModelDict) -> MetaModel:
     """Parse the given dictionary to build a MetaModel instance."""
     root = MetaModel()
 
     for key, body in meta_model_dict.items():
-        logger.debug(f"Key: {key} with body: {body} and type: {type(body)}")
+        logger.debug(f"Key: '{key}' with body: '{body}' and type: '{type(body)}'")
         match key.lower():
             case "name":
-                (root.name,) = body
+                root.name = body
             case "enums":
                 _build_enums(body)
             case "classes":
@@ -81,12 +87,12 @@ def _resolve_open_references(cls: MetaClass) -> None:
                 cls.associations.remove(open_association)
             else:
                 raise ValueError(
-                    f"No class or enum with name '{open_association.association_target}'"
-                    " found for association '{open_association.name}' in class '{cls.name}'."
+                    f"No class or enum with name '{open_association.association_target_name}'"
+                    f" found for association '{open_association.name}' in class '{cls.name}'."
                 )
 
 
-def _build_classes(class_list: list) -> list[MetaClass]:
+def _build_classes(class_list: list[MetaClassDict]) -> list[MetaClass]:
     """Build MetaClass instances from the given list of class definitions."""
     finalised_classes: list[MetaClass] = []
 
@@ -99,7 +105,9 @@ def _build_classes(class_list: list) -> list[MetaClass]:
 
 
 def _build_class(
-    class_name: str, class_attributes: list, class_associations: list
+    class_name: str,
+    class_attributes: list[MetaAttributesDict],
+    class_associations: list[MetaAssociationsDict],
 ) -> MetaClass:
     """Build a MetaClass from the given class definition."""
 
@@ -123,14 +131,9 @@ def _build_class(
     return clazz
 
 
-def _build_enums(enum_list: list[MetaEnum]) -> list[MetaEnum]:
+def _build_enums(enum_list: list[MetaModelDict]) -> list[MetaEnum]:
     """Build MetaEnum instances from the given list of enum definitions."""
     enums: list[MetaEnum] = []
-
-    if enum_list is None:
-        return enums
-    if not isinstance(enum_list, list):
-        raise ValueError(f"Expected a list, got {type(enum_list)}")
 
     for enum in enum_list:
         if not isinstance(enum, dict):
@@ -142,7 +145,7 @@ def _build_enums(enum_list: list[MetaEnum]) -> list[MetaEnum]:
 
 def _build_enum(
     enum_name: str,
-    enum_values: dict,
+    enum_values: list[MetaEnumLiteralDict] | list[str],
 ) -> MetaEnum:
     """Build a MetaEnum from the given enum definition."""
 
@@ -155,7 +158,7 @@ def _build_enum(
     return enum
 
 
-def _build_enum_literal(enum_value) -> MetaEnumLiteral:
+def _build_enum_literal(enum_value: MetaEnumLiteralDict | str) -> MetaEnumLiteral:
     """Build a MetaEnumLiteral from the given enum literal definition."""
 
     if isinstance(enum_value, str):
@@ -171,7 +174,7 @@ def _build_enum_literal(enum_value) -> MetaEnumLiteral:
         raise ValueError(f"Invalid enum value: {enum_value}")
 
 
-def _build_attribute(attribute_values: dict) -> Attribute:
+def _build_attribute(attribute_values: MetaAttributesDict) -> Attribute:
     """Build an Attribute from the given attribute definition."""
 
     if missing := {"name", "attribute_type", "multiplicity"} - attribute_values.keys():
@@ -201,7 +204,7 @@ def _build_attribute(attribute_values: dict) -> Attribute:
     )
 
 
-def _build_association(association_values: dict) -> Association:
+def _build_association(association_values: MetaAssociationsDict) -> Association:
     """Build an Association from the given association definition."""
     if (
         missing := {"name", "multiplicity", "association_type", "target"}
@@ -212,7 +215,6 @@ def _build_association(association_values: dict) -> Association:
         )
 
     return OpenAssociation(
-        # association_origin=cls, #TODO besprechen, für zweiseitige Referenzen?
         name=association_values["name"],
         multiplicity=_test_enum_value(
             MultiplicityOptions, association_values["multiplicity"]
@@ -224,7 +226,7 @@ def _build_association(association_values: dict) -> Association:
     )
 
 
-def _test_enum_value(enum: Enum, value: str) -> Enum | None:
+def _test_enum_value(enum: E, value: str) -> E | None:
     """Test if the given value is a valid name or value for the given enum and
     return the corresponding Enum member if it is"""
     for member in enum:
@@ -244,6 +246,4 @@ def _test_enum_value(enum: Enum, value: str) -> Enum | None:
 
 def _find_in_meta_enums(enum_name: str) -> MetaEnum | None:
     """Search for a MetaEnum with the given name and return it if found."""
-    if enum := ENUMS.get(enum_name):
-        return enum
-    return None
+    return ENUMS.get(enum_name)

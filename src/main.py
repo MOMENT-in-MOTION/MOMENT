@@ -3,6 +3,7 @@ import logging
 
 from pathlib import Path
 
+from .runtime_config import RuntimeConfig
 from .config import METAMODEL_API_DIR, TEMPLATES_DIR
 
 from .metamodel.parser import parse_meta_model
@@ -13,6 +14,7 @@ from .metamodel.codegenerator import (
 )
 from .shared.load_json_as_dict import load_json_as_dict
 from .shared.configure_logging import configure_logging
+from .metamodel.merger import merge_meta_models
 
 logger = logging.getLogger(__name__)
 
@@ -28,21 +30,22 @@ def main():
         print("Path must be to json file!")
         sys.exit(1)
 
-    path = Path(sys.argv[1])
+    config = RuntimeConfig(
+        metamodel_dir = Path(sys.argv[1])
+    )
     configure_logging(verbose = True)
 
     try:
-        meta_model_dict = load_json_as_dict(path=path)
+        meta_model_dict = merge_meta_models(path=config.metamodel_dir, config=config)
     except IOError as e:
         print(getattr(e, "message", str(e)))
         sys.exit(1)
 
-    print(f"Successfully loaded metamodel: {path}")
+    logger.info(f"Successfully loaded metamodel: {config.metamodel_dir}")
 
     meta_model = parse_meta_model(meta_model_dict=meta_model_dict)
 
-    logger.debug(meta_model)
-    print(meta_model.pretty())
+    logger.debug(meta_model.pretty())
 
     api_config = load_json_as_dict(path=Path("src/api_config.json"))
     formatter = get_formatter(api_config["NamingConvention"])
