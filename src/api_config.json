@@ -1,9 +1,11 @@
 {
-    "GenerateGetters": "true",
-    "GenerateSetters": "true",
+    "GenerateGetters": "false",
+    "GenerateSetters": "false",
     "GenerateConstructors": "false",
     "StrictPrivacy": "true",
     "UseDoubleUnderscore": "true",
     "ExplicitTypeSafety": "true",
-    "NamingConvention": "snake_case"
+    "NamingConvention": "snake_case",
+    "inheritanceMode": "native",
+    "supportedInheritanceModes": ["native", "manual"]
 }

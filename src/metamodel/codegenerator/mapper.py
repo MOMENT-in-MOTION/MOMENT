@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from abc import ABC
 from dataclasses import dataclass
 from pathlib import Path
@@ -209,7 +211,19 @@ def create_class_descriptor(cls: MetaClass) -> ClassDescriptor:
         cls: The MetaClass instance to convert.
     """
     print(f"Creating Class-View with the title: {cls.name}")
-    class_view = ClassDescriptor(class_name=cls.name, fields=[])
+    
+    class_comp_name = cls.name
+
+    with open("src/api_config.json") as config:
+            config_data = json.load(config)
+            if config_data["inheritanceMode"] == "native":
+                if (cls.inheritance):
+                    class_comp_name += "( "
+                    for parent in cls.inheritance:
+                        class_comp_name += parent + ", "
+                    class_comp_name = class_comp_name.rstrip(", ") + " )"
+                    print(f"New name: {class_comp_name} -----------------------------------.")
+    class_view = ClassDescriptor(class_name=class_comp_name, fields=[])
 
     for attribute in cls.attributes:
         class_view.fields.append(field_descriptor_from_attribute(attribute))

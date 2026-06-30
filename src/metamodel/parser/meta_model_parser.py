@@ -1,6 +1,9 @@
+import json
 import logging
 from typing import TypeVar
 from enum import Enum
+
+import src
 from ...metameta.m_m_m_classes import (
     MetaClass,
     MetaEnum,
@@ -61,6 +64,7 @@ def _parse(meta_model_dict: MetaModelDict) -> MetaModel:
     logger.debug(f"All classes: {CLASSES.keys()}")
     for clazz in CLASSES.values():
         _resolve_open_references(clazz)
+        _resolve_inheritance(clazz)
         root.add_class(clazz)
 
     logger.debug(f"All Enums: {ENUMS.keys()}")
@@ -72,6 +76,29 @@ def _parse(meta_model_dict: MetaModelDict) -> MetaModel:
     ENUMS.clear()
 
     return root
+
+def _resolve_inheritance(clazz: MetaClass) -> None:
+    """Resolve the inheritance for the given MetaClass."""
+    if not clazz.inheritance:
+        return
+    for parent in clazz.inheritance:
+        logger.debug(f"Resolving inheritance for class '{clazz.name}' from parent '{parent}'")
+        if parent := CLASSES.get(parent):
+            with open("src/api_config.json") as config:
+                config_data = json.load(config)
+                if config_data["inheritanceMode"] == "native":
+                    logger.debug(f"Inheritance Managed Via Native Python Inheritance")
+                elif config_data["inheritanceMode"] == "manual":
+                    logger.debug(f"Inheritance Managed Via Manual Inheritance")
+                    for attribute in CLASSES[parent.name].attributes:
+                        if attribute.name not in [attr.name for attr in clazz.attributes]:
+                            clazz.attributes.append(attribute)
+                    for association in CLASSES[parent.name].associations:
+                        if association.name not in [assoc.name for assoc in clazz.associations]:
+                            clazz.associations.append(association)
+                else:
+                    raise ValueError(f"Invalid inheritance mode: {config_data['inheritanceMode']}")
+            
 
 
 def _resolve_open_references(cls: MetaClass) -> None:
@@ -98,7 +125,7 @@ def _build_classes(class_list: list[MetaClassDict]) -> list[MetaClass]:
 
     for cls in class_list:
         finalised_classes.append(
-            _build_class(cls["name"], cls["attributes"], cls["associations"])
+            _build_class(cls["name"], cls["attributes"], cls["associations"], cls["inherits"] if cls.get("inherits") else [])
         )
 
     return finalised_classes
@@ -108,6 +135,7 @@ def _build_class(
     class_name: str,
     class_attributes: list[MetaAttributesDict],
     class_associations: list[MetaAssociationsDict],
+    class_inherits: list[str]
 ) -> MetaClass:
     """Build a MetaClass from the given class definition."""
 
@@ -125,6 +153,8 @@ def _build_class(
         associations.append(_build_association(association))
 
     clazz.associations = associations
+
+    clazz.inheritance = class_inherits
 
     CLASSES[class_name] = clazz
 

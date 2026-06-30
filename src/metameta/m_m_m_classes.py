@@ -284,6 +284,7 @@ class MetaClass(MetaElement):
     name: str
     attributes: list[Attribute] = field(default_factory=list)
     associations: list[Association | OpenAssociation] = field(default_factory=list)
+    inheritance: list[str] = field(default_factory=list)
 
     def validate(self) -> None:
         """Validate the class and its contained elements.
@@ -342,6 +343,8 @@ class MetaClass(MetaElement):
         pad = " " * indent
 
         result = f"{pad}Class: {self.name}\n"
+        if self.inheritance:
+            result += f"{pad}Inherits: {self.inheritance}\n"
 
         if self.attributes:
             result += f"{pad}  Attributes:\n"
