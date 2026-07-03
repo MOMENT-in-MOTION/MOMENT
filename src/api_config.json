@@ -3,7 +3,7 @@
     "GenerateSetters": "true",
     "GenerateConstructors": "false",
     "StrictPrivacy": "true",
-    "UseDoubleUnderscore": "true",
+    "UseDoubleUnderscore": "false",
     "ExplicitTypeSafety": "true",
     "NamingConvention": "snake_case"
 }

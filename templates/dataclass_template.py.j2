@@ -4,7 +4,9 @@
 {% block imports %}
 from __future__ import annotations
 from dataclasses import dataclass
-from enum_code import *
+{% if enums is defined and enums|length > 0 %}
+from .enum_code import *
+{% endif %}
 {% endblock %}
 
 {% block body %}
@@ -65,9 +67,26 @@ class {{ cls.class_name }}:
             value: The new value to assign to the "{{f.field_name}}" attribute
         """
         {% if api_config.ExplicitTypeSafety == "true" %}
-        if(type(value) != {{f.type_hint}}):
-            raise TypeError(f"Expected type {{f.type_hint}} for field '{{f.field_name}}', got {type(value)}")
+        {% if f.multiplicity.is_optional %}
+        if value is not None:
+            {% if f.multiplicity.is_list %}
+            if not isinstance(value, list) or not all(isinstance(i, {{f.base_type}}) for i in value):
+                raise TypeError(f"Expected type list[{{f.base_type}}] or None for field '{{f.field_name}}', got {type(value)}")
+            {% else %}
+            if not isinstance(value, {{f.base_type}}):
+                raise TypeError(f"Expected type {{f.base_type}} or None for field '{{f.field_name}}', got {type(value)}")
+            {% endif %}
+        {% else %}
+        {% if f.multiplicity.is_list %}
+        if not isinstance(value, list) or not all(isinstance(i, {{f.base_type}}) for i in value):
+            raise TypeError(f"Expected type list[{{f.base_type}}] for field '{{f.field_name}}', got {type(value)}")
+        {% else %}
+        if not isinstance(value, {{f.base_type}}):
+            raise TypeError(f"Expected type {{f.base_type}} for field '{{f.field_name}}', got {type(value)}")
         {% endif %}
+        {% endif %}
+        {% endif %}
+
         {% if api_config.StrictPrivacy == "true" %}
         {% if api_config.UseDoubleUnderscore == "true" %}
         self.__{{f.field_name}} = value
