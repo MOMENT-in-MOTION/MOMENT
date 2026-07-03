@@ -1,9 +1,19 @@
+from __future__ import annotations
 import json
-
 from pathlib import Path
+from typing import TypeAlias, Union
 
+JsonValue: TypeAlias = Union[
+    str,
+    int,
+    float,
+    bool,
+    None,
+    list['JsonValue'],
+    dict[str, 'JsonValue'],
+]
 
-def load_json_as_dict(path: Path) -> dict[str] | None:
+def load_json_as_dict(path: Path) -> dict[str, JsonValue] | None:
     """
     Returns the content of a .json file as a python dict.
 

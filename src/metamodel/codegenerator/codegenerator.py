@@ -2,15 +2,17 @@ from pathlib import Path
 
 from ...metameta.m_m_m_classes import MetaModel
 from ...config import TEMPLATES_DIR
+from ...shared.load_json_as_dict import JsonValue
 
 from .jinja_engine import render, build_engine
 from .mapper import create_descriptors
 from .formatter import Formatter
 
 
+
 def generate_meta_model_api(
     meta_model: MetaModel,
-    api_config: dict[str],
+    api_config: dict[str, JsonValue],
     formatter: Formatter,
     templates_dir: Path
 ) -> dict[str, str]:

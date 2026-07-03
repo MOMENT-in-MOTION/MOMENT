@@ -1,7 +1,8 @@
+from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 
-def build_engine(template_dir: str) -> Environment:
+def build_engine(template_dir: Path) -> Environment:
     """
     Create and configure a Jinja2 Environment for template rendering.
 
@@ -28,8 +29,8 @@ def render(env: Environment, template_name: str, context: dict) -> str:
     """
     Render a single Jinja2 template against a given context.
 
-    Looks up the named template inside the template directory and renders 
-    it by unpacking the context dictionary as keyword arguments, making 
+    Looks up the named template inside the template directory and renders
+    it by unpacking the context dictionary as keyword arguments, making
     every key available as a top-level variable inside the template.
 
     Args:

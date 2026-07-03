@@ -183,8 +183,8 @@ class Attribute(MetaElement):
     """
 
     name: str
-    multiplicity: MetaEnumLiteral
-    attribute_type: MetaEnumLiteral
+    multiplicity: Enum
+    attribute_type: Enum
     default_value: Any | None
 
     def validate(self) -> None:

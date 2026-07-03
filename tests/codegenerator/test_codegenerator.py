@@ -11,7 +11,8 @@ from src.metameta.m_m_m_classes import (
     Attribute,
     Association,
     TypeOptions,
-    MultiplicityOptions
+    MultiplicityOptions,
+    AssociationOptions
 )
 
 from src.metamodel.codegenerator.codegenerator import (
@@ -72,7 +73,7 @@ def meta_model_with_associations(simple_meta_class, simple_meta_enum):
     # Add association from Person to Address
     association = Association(
         name="address",
-        association_type="reference",
+        association_type=AssociationOptions.REFERENCE,
         association_target=address_cls,
         multiplicity=MultiplicityOptions.ZERO_OR_ONE,
     )

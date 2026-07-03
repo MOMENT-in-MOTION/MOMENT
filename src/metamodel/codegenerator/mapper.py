@@ -138,7 +138,7 @@ class TemplateContext:
     enums: list[EnumDescriptor]
 
 
-def resolve_primitive_type_or_meta_enum(type_option: TypeOptions) -> str:
+def resolve_primitive_type_or_meta_enum(type_option: TypeOptions) -> tuple[str, bool]:
     if isinstance(type_option, MetaEnum):
         return type_option.name, True
     if type_option in TypeOptions:
@@ -172,7 +172,7 @@ def resolve_association(association: str) -> str:
     return association.lower()
 
 
-def field_descriptor_from_association(association: Association) -> FieldDescriptor:
+def field_descriptor_from_association(association: Association | OpenAssociation) -> FieldDescriptor:
     """
     Build a FieldDescriptor for a class association (reference to another class).
 
@@ -234,7 +234,7 @@ def create_enum_descriptor(enum: MetaEnum):
     return EnumDescriptor(enum_name=enum.name, options=enum_values)
 
 
-def create_descriptors(meta_model: MetaModel) -> dict[str, list[Descriptor]]:
+def create_descriptors(meta_model: MetaModel) -> dict[str, list[ClassDescriptor]|list[EnumDescriptor]]:
     """
     Convert an entire MetaModel into a dictionary of class and enum descriptors.
 

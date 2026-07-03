@@ -204,7 +204,7 @@ def _build_attribute(attribute_values: MetaAttributesDict) -> Attribute:
     )
 
 
-def _build_association(association_values: MetaAssociationsDict) -> Association:
+def _build_association(association_values: MetaAssociationsDict) -> OpenAssociation:
     """Build an Association from the given association definition."""
     if (
         missing := {"name", "multiplicity", "association_type", "target"}
