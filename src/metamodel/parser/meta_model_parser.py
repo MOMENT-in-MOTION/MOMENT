@@ -186,12 +186,12 @@ def _build_attribute(attribute_values: MetaAttributesDict) -> Attribute:
         attribute_type := _test_enum_value(
             TypeOptions, attribute_values["attribute_type"]
         )
-    ) or (attribute_type := _find_in_meta_enums(attribute_values["attribute_type"])):
+    ):
         pass
     else:
         raise ValueError(
             f"The attribute type '{attribute_values['attribute_type']}' is"
-            " not a valid TypeOption or Enum name."
+            " not a valid TypeOption name."
         )
 
     return Attribute(
@@ -223,6 +223,7 @@ def _build_association(association_values: MetaAssociationsDict) -> Association:
             AssociationOptions, association_values["association_type"]
         ),
         association_target_name=association_values["target"],
+        default_value=association_values.get("default_value")
     )
 
 

@@ -138,25 +138,23 @@ class TemplateContext:
     enums: list[EnumDescriptor]
 
 
-def resolve_primitive_type_or_meta_enum(type_option: TypeOptions) -> str:
-    if isinstance(type_option, MetaEnum):
-        return type_option.name, True
+def resolve_primitive_type(type_option: TypeOptions) -> str:
     if type_option in TypeOptions:
-        return type_option.value, False
-    raise TypeError(f"Expected TypeOptions enum or MetaEnum, got {type_option}")
+        return type_option.value
+    raise TypeError(f"Expected TypeOptions enum, got {type_option}")
 
 
 def field_descriptor_from_attribute(attribute: Attribute) -> FieldDescriptor:
     print(f"Creating Field with the title: {attribute.name}")
-    base_type, is_meta_enum = resolve_primitive_type_or_meta_enum(attribute.attribute_type)
+    primitive_type = resolve_primitive_type(attribute.attribute_type)
     multiplicity = MultiplicityOptions(attribute.multiplicity or "ANY")
 
     return FieldDescriptor(
         field_name=attribute.name,
-        base_type=base_type,
+        base_type=primitive_type,
         multiplicity=multiplicity,
         default=attribute.default_value,
-        is_meta_enum=is_meta_enum,
+        is_meta_enum=False,
         is_association=False,
         association_kind=None,
     )
@@ -190,8 +188,8 @@ def field_descriptor_from_association(association: Association) -> FieldDescript
         field_name=association.name,
         base_type=association.association_target.name,
         multiplicity=multiplicity,
-        default=None,
-        is_meta_enum=False,
+        default=association.default_value,
+        is_meta_enum=isinstance(association.association_target, MetaEnum),
         is_association=True,
         association_kind=resolve_association(association.association_type),
     )
