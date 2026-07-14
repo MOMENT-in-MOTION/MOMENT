@@ -4,7 +4,7 @@ from ...metameta.m_m_m_classes import MetaModel
 from ...config import TEMPLATES_DIR
 
 from .jinja_engine import render, build_engine
-from .mapper import create_descriptors
+from .mapper import TemplateContext
 from .formatter import Formatter
 
 
@@ -33,13 +33,15 @@ def generate_meta_model_api(
         A dictionary containing the generated "class_code" and "enum_code".
     """
     j2_engine = build_engine(templates_dir)
-    context = create_descriptors(meta_model=meta_model)
-    context.update({"api_config": api_config})
+    context = TemplateContext.from_meta_model(meta_model=meta_model)
+    context_dict = context.to_dict()
 
-    formatter.format_descriptors(context)
+    formatter.format_descriptors(context_dict)
 
-    class_code = render(j2_engine, "class_template.py.j2", context)
-    enum_code = render(j2_engine, "enum_template.py.j2", context)
+    context_dict.update({"api_config": api_config})
+
+    dataclass_code = render(j2_engine, "dataclass_template.py.j2", context_dict)
+    enum_code = render(j2_engine, "enum_template.py.j2", context_dict)
 
     return {
         "class_code": class_code,
