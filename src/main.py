@@ -1,5 +1,6 @@
 import sys
 import logging
+import argparse
 
 from pathlib import Path
 
@@ -9,7 +10,8 @@ from .metamodel.parser import parse_meta_model
 from .metamodel.codegenerator import (
     generate_meta_model_api,
     write_generated_code,
-    get_formatter
+    get_formatter,
+    get_serializer
 )
 from .shared.structure import structure_data
 from .shared.load_json_as_dict import load_json_as_dict
@@ -23,13 +25,22 @@ logger = logging.getLogger(__name__)
 def main():
     """Entry point for the application."""
 
-    if len(sys.argv) != 2:
-        print("Usage: python main.py <path-to-metamodel> ")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="MOMENT metamodel code generator")
+    parser.add_argument(
+        "metamodel",
+        metavar="path-to-metamodel",
+        help="Path to the metamodel JSON file"
+    )
+    parser.add_argument(
+        "-s", "--serialize",
+        metavar="format",
+        choices=["json", "xml"],
+        help="Serialize the parsed metamodel to the given format instead of generating code"
+    )
+    args = parser.parse_args()
 
-    if not sys.argv[1].endswith(".json"):
-        print("Path must be to json file!")
-        sys.exit(1)
+    if not args.metamodel.endswith(".json"):
+        parser.error("Path must point to a .json file")
 
     metamodel_dir = Path(sys.argv[1])
 
@@ -51,12 +62,30 @@ def main():
     if api_config is not None:
         formatter = get_formatter(api_config["NamingConvention"])
 
+<<<<<<< HEAD
         generated_code = generate_meta_model_api(
             meta_model=metamodel,
             api_config=api_config,
             formatter=formatter,
             templates_dir=TEMPLATES_DIR
         )
+=======
+    api_config = load_json_as_dict(path=Path("src/api_config.json"))
+
+    formatter = get_formatter(api_config["NamingConvention"])
+
+    serializer = get_serializer(args.serialize) if args.serialize is not None else None
+
+    generated_code = generate_meta_model_api(
+        meta_model=meta_model,
+        api_config=api_config,
+        formatter=formatter,
+        templates_dir=TEMPLATES_DIR,
+        serializer=serializer
+    )
+
+    write_generated_code(generated_code=generated_code, output_dir=METAMODEL_API_DIR)
+>>>>>>> 1c3047e (Implement json and xml serializer to export api as other formats)
 
         write_generated_code(generated_code=generated_code, output_dir=METAMODEL_API_DIR)
     else:

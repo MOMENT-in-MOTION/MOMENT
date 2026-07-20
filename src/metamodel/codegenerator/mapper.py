@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 import logging
 from pathlib import Path
@@ -18,10 +18,39 @@ from ...metameta.m_m_m_classes import (
 
 logger = logging.getLogger(__name__)
 
+class Visitor(ABC):
+    """
+    Abstract visitor base for descriptor traversal.
+    """
+
+    @abstractmethod
+    def visit_class(self, class_descriptor: ClassDescriptor) -> None: 
+        pass
+
+    @abstractmethod
+    def visit_field(self, field_descriptor: FieldDescriptor) -> None:
+        pass
+
+    @abstractmethod
+    def visit_enum(self, enum_descriptor: EnumDescriptor) -> None:
+        pass
+
+    def visit_context(self, context: Context) -> None:
+        """Traverse all classes and enums in the context."""
+        for cls in context.classes:
+            self.visit_class(cls)
+
+        for enum in context.enums:
+            self.visit_enum(enum)
+
+
 class Descriptor(ABC):
     """
     Abstract base for all template descriptors.
     """
+    @abstractmethod
+    def accpet(self, visitor: Visitor) -> None:
+        pass
 
 
 @dataclass(eq=True)
@@ -117,6 +146,9 @@ class FieldDescriptor(Descriptor):
             return self._render_list_default(self.default)
         return self._render_scalar_default(self.default)
 
+    def accpet(self, visitor: Visitor) -> None:
+        visitor.visit_field(self)
+
     def _render_scalar_default(self, value: str) -> str:
         if self.is_meta_enum:
             return f"{self.base_type}.{value}"
@@ -194,6 +226,9 @@ class ClassDescriptor(Descriptor):
     def sorted_fields(self) -> list[FieldDescriptor]:
         """Required fields first, then fields with defaults."""
         return sorted(self.fields, key=lambda f: f.has_default)
+    
+    def accpet(self, visitor: Visitor) -> None:
+        visitor.visit_class(self)
 
 
 @dataclass(eq=True)
@@ -222,6 +257,9 @@ class EnumDescriptor(Descriptor):
         for meta_enum_literal in enum.values:
             enum_values[meta_enum_literal.name] = meta_enum_literal.value
         return cls(enum_name=enum.name, options=enum_values)
+    
+    def accpet(self, visitor: Visitor) -> None:
+        visitor.visit_enum(self)
 
 
 @dataclass
