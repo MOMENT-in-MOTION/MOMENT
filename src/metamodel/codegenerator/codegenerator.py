@@ -30,7 +30,7 @@ def generate_meta_model_api(
         templates_dir: Path to the directory containing the Jinja2 templates.
 
     Returns:
-        A dictionary containing the generated "dataclass_code" and "enum_code".
+        A dictionary containing the generated "class_code" and "enum_code".
     """
     j2_engine = build_engine(templates_dir)
     context = create_descriptors(meta_model=meta_model)
@@ -38,11 +38,11 @@ def generate_meta_model_api(
 
     formatter.format_descriptors(context)
 
-    dataclass_code = render(j2_engine, "dataclass_template.py.j2", context)
+    class_code = render(j2_engine, "class_template.py.j2", context)
     enum_code = render(j2_engine, "enum_template.py.j2", context)
 
     return {
-        "dataclass_code": dataclass_code,
+        "class_code": class_code,
         "enum_code": enum_code,
     }
 

@@ -95,8 +95,8 @@ class TestCodeGeneratorIntegration:
         with TemporaryDirectory() as tmpdir:
             templates_dir = Path(tmpdir)
             # Create dummy template files
-            (templates_dir / "dataclass_template.py.j2").write_text(
-                "# Dataclass Template\n{{ classes }}"
+            (templates_dir / "class_template.py.j2").write_text(
+                "# Class Template\n{{ classes }}"
             )
             (templates_dir / "enum_template.py.j2").write_text(
                 "# Enum Template\n{{ enums }}"
@@ -113,7 +113,7 @@ class TestCodeGeneratorIntegration:
             )
 
             assert isinstance(result, dict)
-            assert "dataclass_code" in result
+            assert "class_code" in result
             assert "enum_code" in result
-            assert isinstance(result["dataclass_code"], str)
+            assert isinstance(result["class_code"], str)
             assert isinstance(result["enum_code"], str)
