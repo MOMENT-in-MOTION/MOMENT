@@ -1,9 +1,10 @@
 import json
 
 from pathlib import Path
+from src.metameta.m_m_m_dicts import MetaModelDict
 
 
-def load_json_as_dict(path: Path) -> dict[str] | None:
+def load_json_as_dict(path: Path) -> MetaModelDict|dict[str, str]:
     """
     Returns the content of a .json file as a python dict.
 

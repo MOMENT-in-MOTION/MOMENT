@@ -1,6 +1,7 @@
 """Core data structures for the meta-model."""
 
 from __future__ import annotations
+from pathlib import Path
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -213,6 +214,7 @@ class Association(MetaElement):
     multiplicity: MultiplicityOptions
     association_type: AssociationOptions
     association_target: MetaClass | MetaEnum
+    import_link: Path | None = None
     default_value: Any | None = None
 
     def validate(self) -> None:
@@ -241,6 +243,8 @@ class OpenAssociation(MetaElement):
     multiplicity: MultiplicityOptions
     association_type: AssociationOptions
     association_target_name: str
+    import_link: Path | None = None
+
     default_value: Any | None = None
 
     def validate(self) -> None:
@@ -287,7 +291,7 @@ class MetaClass(MetaElement):
 
     name: str
     attributes: list[Attribute] = field(default_factory=list)
-    associations: list[Association | OpenAssociation] = field(default_factory=list)
+    associations: list[Association] | list[OpenAssociation] = field(default_factory=list)
 
     def validate(self) -> None:
         """Validate the class and its contained elements.
@@ -367,7 +371,7 @@ class MetaClass(MetaElement):
                     result += (
                         f"{pad}    -> Open Association {assoc.name} "
                         f"({assoc.association_type.name}) "
-                        f"\t-> {assoc.association_target} "
+                        f"\t-> {assoc.association_target_name} "
                         f"[{assoc.multiplicity.name}]\n"
                     )
                 else:
