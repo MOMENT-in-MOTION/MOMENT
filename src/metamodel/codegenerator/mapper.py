@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC
 from dataclasses import dataclass
+import logging
 from pathlib import Path
 
 from ...shared.load_json_as_dict import load_json_as_dict
@@ -13,8 +14,11 @@ from ...metameta.m_m_m_classes import (
     TypeOptions,
     Attribute,
     MetaModel,
-    MultiplicityOptions
+    MultiplicityOptions,
+    OpenAssociation
 )
+
+logger = logging.getLogger(__name__)
 
 class Descriptor(ABC):
     """
@@ -47,7 +51,6 @@ class FieldDescriptor(Descriptor):
     is_meta_enum: bool
     association_kind: str | None
     default: str | None
-
 
     @property
     def type_hint(self) -> str:
@@ -184,6 +187,7 @@ def field_descriptor_from_association(association: Association) -> FieldDescript
     print(f"Creating Field with the title: {association.name}")
     multiplicity = MultiplicityOptions(association.multiplicity or "ANY")
 
+
     return FieldDescriptor(
         field_name=association.name,
         base_type=association.association_target.name,
@@ -213,6 +217,12 @@ def create_class_descriptor(cls: MetaClass) -> ClassDescriptor:
         class_view.fields.append(field_descriptor_from_attribute(attribute))
 
     for association in cls.associations:
+        if isinstance(association, OpenAssociation):
+            logger.warning(
+                f"Association '{association.name}' in class '{cls.name}' is an OpenAssociation. "
+                f"It was not resolved and will be skipped in code generation."
+            )
+            continue
         class_view.fields.append(field_descriptor_from_association(association))
 
     return class_view

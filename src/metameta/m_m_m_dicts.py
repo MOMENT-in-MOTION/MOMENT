@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import TypedDict
+from pathlib import Path
 import sys
 if sys.version_info >= (3, 11):
     from typing import NotRequired  # Available in stdlib on 3.11+
@@ -48,9 +49,12 @@ class MetaAssociationsDict(ImportableDict):
     """A dictionary containing the name, multiplicity, type, and target
     of a Meta-Class association."""
     name: str
+    import_path: NotRequired[Path]
     multiplicity: str
     association_type: str
     target: str
+    default_value: NotRequired[Path]
+
 
 
 class MetaEnumLiteralDict(TypedDict):
