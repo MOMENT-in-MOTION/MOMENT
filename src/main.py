@@ -63,8 +63,8 @@ def main():
 
         write_generated_code(generated_code=generated_code, output_dir=METAMODEL_API_DIR)
     else:
-        raise ValueError(f"API configuration could not be loaded. Please check the configuration file."
-                         f" At this path: {path}")
+        raise ValueError(f"API configuration could not be loaded. "
+                         f"Please check the configuration file at this path: {path}")
 
 if __name__ == "__main__":
     main()
