@@ -24,4 +24,4 @@ def _write_serialized_output(serialized: str, output_path: Path) -> None:
     try:
         output_path.write_text(serialized, encoding="UTF-8")
     except OSError as e:
-        raise OSError(f"Failed to write file '{path}': {e}") from e
+        raise OSError(f"Failed to write file '{output_path}': {e}") from e

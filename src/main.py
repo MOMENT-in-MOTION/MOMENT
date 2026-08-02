@@ -42,7 +42,7 @@ def main():
     if not args.metamodel.endswith(".json"):
         parser.error("Path must point to a .json file")
 
-    metamodel_dir = Path(sys.argv[1])
+    metamodel_dir = Path(args.metamodel)
 
     configure_logging(verbose = True)
 
@@ -62,30 +62,15 @@ def main():
     if api_config is not None:
         formatter = get_formatter(api_config["NamingConvention"])
 
-<<<<<<< HEAD
+        serializer = get_serializer(args.serialize) if args.serialize is not None else None
+
         generated_code = generate_meta_model_api(
             meta_model=metamodel,
             api_config=api_config,
             formatter=formatter,
-            templates_dir=TEMPLATES_DIR
+            templates_dir=TEMPLATES_DIR,
+            serializer=serializer
         )
-=======
-    api_config = load_json_as_dict(path=Path("src/api_config.json"))
-
-    formatter = get_formatter(api_config["NamingConvention"])
-
-    serializer = get_serializer(args.serialize) if args.serialize is not None else None
-
-    generated_code = generate_meta_model_api(
-        meta_model=meta_model,
-        api_config=api_config,
-        formatter=formatter,
-        templates_dir=TEMPLATES_DIR,
-        serializer=serializer
-    )
-
-    write_generated_code(generated_code=generated_code, output_dir=METAMODEL_API_DIR)
->>>>>>> 1c3047e (Implement json and xml serializer to export api as other formats)
 
         write_generated_code(generated_code=generated_code, output_dir=METAMODEL_API_DIR)
     else:
