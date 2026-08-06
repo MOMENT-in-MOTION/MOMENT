@@ -244,7 +244,6 @@ class OpenAssociation(MetaElement):
     association_type: AssociationOptions
     association_target_name: str
     import_link: Path | None = None
-
     default_value: Any | None = None
 
     def validate(self) -> None:

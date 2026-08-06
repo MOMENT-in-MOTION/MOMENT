@@ -5,7 +5,7 @@ from pathlib import Path
 from ...metameta.m_m_m_classes import MetaClass, MetaModel, OpenAssociation
 from ...metamodel.parser import parse_meta_model
 from ...shared.load_json_as_dict import load_json_as_dict
-from .structure import structure_data
+from ...shared.structure import structure_data
 
 logger = logging.getLogger(__name__)
 

@@ -1,4 +1,4 @@
-from ...metameta.m_m_m_dicts import MetaModelDict, MetaClassDict
+from ..metameta.m_m_m_dicts import MetaModelDict, MetaClassDict
 
 def structure_data(unstructured: MetaModelDict) -> MetaModelDict:
     """Collect the relevant data in a structured dictionary.
@@ -31,17 +31,4 @@ def structure_data(unstructured: MetaModelDict) -> MetaModelDict:
     if len(names) > 1:
         raise ValueError(f"Multiple names where given: {names}")
 
-    _rename_import_indicator(classes_list=classes)
-
     return {"name": names[0], "enums": enums, "classes": classes}
-
-def _rename_import_indicator(classes_list: list[MetaClassDict]) -> None:
-    """Renames the key 'import' to 'import_' in all dictionaries in the given list.
-
-    Args:
-        classes_list (list[MetaClassDict]): The list of dictionaries to rename.
-    """
-    for cls in classes_list:
-        for element_dict in cls["attributes"] + cls["associations"]:
-            if "import" in element_dict:
-                element_dict["import_"] = element_dict.pop("import")
