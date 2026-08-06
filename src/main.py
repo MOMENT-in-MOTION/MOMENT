@@ -22,9 +22,6 @@ logger = logging.getLogger(__name__)
 
 def main():
     """Entry point for the application."""
-    liste = [5]
-    liste *= 5
-    print(liste)
 
     if len(sys.argv) != 2:
         print("Usage: python main.py <path-to-metamodel> ")
