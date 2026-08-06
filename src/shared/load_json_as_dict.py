@@ -1,9 +1,10 @@
 import json
 
 from pathlib import Path
+from typing import Any
 
 
-def load_json_as_dict(path: Path) -> dict[str] | None:
+def load_json_as_dict(path: Path) -> dict[str, Any]:
     """
     Returns the content of a .json file as a python dict.
 

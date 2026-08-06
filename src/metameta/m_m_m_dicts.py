@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import TypedDict
+from pathlib import Path
 import sys
 if sys.version_info >= (3, 11):
     from typing import NotRequired  # Available in stdlib on 3.11+
@@ -51,6 +52,9 @@ class MetaAssociationsDict(ImportableDict):
     multiplicity: str
     association_type: str
     target: str
+    default_value: NotRequired[str | int]
+    import_path: NotRequired[Path]
+
 
 
 class MetaEnumLiteralDict(TypedDict):

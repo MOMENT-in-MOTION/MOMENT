@@ -1,6 +1,7 @@
 import logging
 from typing import TypeVar
 from enum import Enum
+from pathlib import Path
 from ...metameta.m_m_m_classes import (
     MetaClass,
     MetaEnum,
@@ -60,7 +61,6 @@ def _parse(meta_model_dict: MetaModelDict) -> MetaModel:
 
     logger.debug(f"All classes: {CLASSES.keys()}")
     for clazz in CLASSES.values():
-        _resolve_open_references(clazz)
         root.add_class(clazz)
 
     logger.debug(f"All Enums: {ENUMS.keys()}")
@@ -72,24 +72,6 @@ def _parse(meta_model_dict: MetaModelDict) -> MetaModel:
     ENUMS.clear()
 
     return root
-
-
-def _resolve_open_references(cls: MetaClass) -> None:
-    """Check the associations of the given class for any OpenAssociations
-    and tries to resolve them."""
-    for open_association in cls.associations[:]:
-        if isinstance(open_association, OpenAssociation):
-            if target_class := CLASSES.get(open_association.association_target_name):
-                cls.associations.append(open_association.to_association(target_class))
-                cls.associations.remove(open_association)
-            elif target_enum := ENUMS.get(open_association.association_target_name):
-                cls.associations.append(open_association.to_association(target_enum))
-                cls.associations.remove(open_association)
-            else:
-                raise ValueError(
-                    f"No class or enum with name '{open_association.association_target_name}'"
-                    f" found for association '{open_association.name}' in class '{cls.name}'."
-                )
 
 
 def _build_classes(class_list: list[MetaClassDict]) -> list[MetaClass]:
@@ -114,7 +96,7 @@ def _build_class(
     logger.debug(f"Building Class with name: '{class_name}'.")
     clazz = MetaClass(name=class_name)
     attributes: list[Attribute] = []
-    associations: list[Association] = []
+    associations: list[Association]|list[OpenAssociation] = []
 
     for attribute in class_attributes:
         attributes.append(_build_attribute(attribute))
@@ -204,7 +186,7 @@ def _build_attribute(attribute_values: MetaAttributesDict) -> Attribute:
     )
 
 
-def _build_association(association_values: MetaAssociationsDict) -> Association:
+def _build_association(association_values: MetaAssociationsDict) -> OpenAssociation:
     """Build an Association from the given association definition."""
     if (
         missing := {"name", "multiplicity", "association_type", "target"}
@@ -213,7 +195,7 @@ def _build_association(association_values: MetaAssociationsDict) -> Association:
         raise ValueError(
             f"Missing required keys: {missing} in attribute definition: {association_values}"
         )
-
+    link_value = association_values.get("import_link")
     return OpenAssociation(
         name=association_values["name"],
         multiplicity=_test_enum_value(
@@ -223,11 +205,12 @@ def _build_association(association_values: MetaAssociationsDict) -> Association:
             AssociationOptions, association_values["association_type"]
         ),
         association_target_name=association_values["target"],
-        default_value=association_values.get("default_value")
+        default_value=association_values.get("default_value"),
+        import_link= Path(link_value) if link_value and isinstance(link_value, str) else None
     )
 
 
-def _test_enum_value(enum: E, value: str) -> E | None:
+def _test_enum_value(enum: E, value: str) -> E:
     """Test if the given value is a valid name or value for the given enum and
     return the corresponding Enum member if it is"""
     for member in enum:
@@ -242,7 +225,6 @@ def _test_enum_value(enum: E, value: str) -> E | None:
             f"'{value}' is no valid name or value for {enum.__name__}. "
             f"Allowed names: {allowed_names}, allowed values: {allowed_values}"
         )
-    return None
 
 
 def _find_in_meta_enums(enum_name: str) -> MetaEnum | None:
