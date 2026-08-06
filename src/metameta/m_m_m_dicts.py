@@ -49,11 +49,11 @@ class MetaAssociationsDict(ImportableDict):
     """A dictionary containing the name, multiplicity, type, and target
     of a Meta-Class association."""
     name: str
-    import_path: NotRequired[Path]
     multiplicity: str
     association_type: str
     target: str
-    default_value: NotRequired[Path]
+    default_value: NotRequired[str | int]
+    import_path: NotRequired[Path]
 
 
 

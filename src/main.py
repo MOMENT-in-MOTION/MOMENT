@@ -11,7 +11,7 @@ from .metamodel.codegenerator import (
     write_generated_code,
     get_formatter
 )
-from .metamodel.merger.structure import structure_data
+from .shared.structure import structure_data
 from .shared.load_json_as_dict import load_json_as_dict
 from .shared.configure_logging import configure_logging
 from .metamodel.merger import merge_meta_models
