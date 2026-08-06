@@ -1,49 +1,59 @@
 from pathlib import Path
 
 from ...metameta.m_m_m_classes import MetaModel
-from ...config import TEMPLATES_DIR
+from ...config import TEMPLATES_DIR, METAMODEL_API_DIR
 
 from .jinja_engine import render, build_engine
-from .mapper import create_descriptors
+from .mapper import TemplateContext
 from .formatter import Formatter
+from .serializer import Serializer, serialize_context
 
 
 def generate_meta_model_api(
     meta_model: MetaModel,
     api_config: dict[str],
     formatter: Formatter,
-    templates_dir: Path
+    templates_dir: Path,
+    serializer: Serializer | None = None,
 ) -> dict[str, str]:
     """
-    Generates the API for the metamodel.
+    Generate Python API code from a metamodel.
 
-    Builds the Jinja2 engine, assembles the rendering context from the
-    metamodel and API config, applies the formatter, and renders the
+    Prepares a template context from the metamodel, applies the formatter,
+    optionally serializes the context to JSON or XML, and renders the
     dataclass and enum templates.
 
     Args:
-        meta_model: The parsed metamodel instance to generate code for.
-        api_config: Configuration dictionary containing settings such as
-            the naming convention.
-        formatter: The formatter instance used to prepare the field
-            descriptors in the rendering context.
-        templates_dir: Path to the directory containing the Jinja2 templates.
+        meta_model: The parsed metamodel to generate code for.
+        api_config: Configuration passed through to the templates (e.g. package name).
+        formatter: Visitor that applies naming-convention formatting to the context.
+        templates_dir: Directory containing the Jinja2 templates.
+        serializer: Optional visitor that serializes the context to a file
+            (JSON, XML, ...) before rendering. If None, no file is written.
 
     Returns:
-        A dictionary containing the generated "class_code" and "enum_code".
+        A dictionary with keys "dataclass_code" and "enum_code" containing
+        the rendered source code strings.
     """
     j2_engine = build_engine(templates_dir)
-    context = create_descriptors(meta_model=meta_model)
-    context.update({"api_config": api_config})
+    context = TemplateContext.from_meta_model(meta_model=meta_model)
+    
+    formatter.visit_context(context)
 
-    formatter.format_descriptors(context)
+    if serializer is not None:
+        serialize_context(context, api_config, serializer, METAMODEL_API_DIR)
 
-    class_code = render(j2_engine, "class_template.py.j2", context)
-    enum_code = render(j2_engine, "enum_template.py.j2", context)
+    context_dict = context.to_dict()
+    context_dict.update({"api_config": api_config})
 
+    return _render_templates(j2_engine, context_dict)
+
+
+def _render_templates(j2_engine, context_dict: dict) -> dict[str, str]:
+    """Render the dataclass and enum templates against the prepared context."""
     return {
-        "class_code": class_code,
-        "enum_code": enum_code,
+        "class_code": render(j2_engine, "class_template.py.j2", context_dict),
+        "enum_code":      render(j2_engine, "enum_template.py.j2", context_dict),
     }
 
 

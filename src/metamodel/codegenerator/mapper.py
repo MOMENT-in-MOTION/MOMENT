@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 import logging
 from pathlib import Path
-
-from ...shared.load_json_as_dict import load_json_as_dict
 
 from ...metameta.m_m_m_classes import (
     MetaClass,
@@ -20,10 +18,39 @@ from ...metameta.m_m_m_classes import (
 
 logger = logging.getLogger(__name__)
 
+class Visitor(ABC):
+    """
+    Abstract visitor base for descriptor traversal.
+    """
+
+    @abstractmethod
+    def visit_class(self, class_descriptor: ClassDescriptor) -> None: 
+        pass
+
+    @abstractmethod
+    def visit_field(self, field_descriptor: FieldDescriptor) -> None:
+        pass
+
+    @abstractmethod
+    def visit_enum(self, enum_descriptor: EnumDescriptor) -> None:
+        pass
+
+    def visit_context(self, context: Context) -> None:
+        """Traverse all classes and enums in the context."""
+        for cls in context.classes:
+            self.visit_class(cls)
+
+        for enum in context.enums:
+            self.visit_enum(enum)
+
+
 class Descriptor(ABC):
     """
     Abstract base for all template descriptors.
     """
+    @abstractmethod
+    def accpet(self, visitor: Visitor) -> None:
+        pass
 
 
 @dataclass(eq=True)
@@ -52,6 +79,48 @@ class FieldDescriptor(Descriptor):
     association_kind: str | None
     default: str | None
 
+    @classmethod
+    def from_association(cls, association: Association) -> FieldDescriptor:
+        """
+        Factory for building a FieldDescriptor form a association (reference to another class).
+
+        Resolves the association's multiplicity against the target class name to
+        produce the appropriate type hint and default value, then wraps everything
+        in a FieldDescriptor.
+
+        Args:
+            association: The Association instance from the meta-model.
+        """
+        return cls(
+            field_name=association.name,
+            base_type=association.association_target.name,
+            multiplicity=MultiplicityOptions(association.multiplicity or "ANY"),
+            default=association.default_value,
+            is_meta_enum=isinstance(association.association_target, MetaEnum),
+            is_association=True,
+            association_kind=cls._resolve_association(association.association_type),
+        )
+
+    @classmethod
+    def from_attribute(cls, attribute: Attribute) -> FieldDescriptor:
+        """
+        Factory for building a FieldDescriptor form a attribute 
+
+        Args:
+            attribute: The Attribute instance from the meta-model.
+        """
+        primitive_type = cls._resolve_primitive_type(attribute.attribute_type)
+
+        return cls(
+            field_name=attribute.name,
+            base_type=primitive_type,
+            multiplicity=MultiplicityOptions(attribute.multiplicity or "ANY"),
+            default=attribute.default_value,
+            is_meta_enum=False,
+            is_association=False,
+            association_kind=None,
+        )
+
     @property
     def type_hint(self) -> str:
         """Fully resolved type annotation, e.g. 'list[MyClass] | None'."""
@@ -77,6 +146,9 @@ class FieldDescriptor(Descriptor):
             return self._render_list_default(self.default)
         return self._render_scalar_default(self.default)
 
+    def accpet(self, visitor: Visitor) -> None:
+        visitor.visit_field(self)
+
     def _render_scalar_default(self, value: str) -> str:
         if self.is_meta_enum:
             return f"{self.base_type}.{value}"
@@ -88,6 +160,23 @@ class FieldDescriptor(Descriptor):
     def _render_list_default(self, values: list[str] | str) -> str:
         items = ", ".join(self._render_scalar_default(v) for v in values)
         return f"[{items}]"
+
+    def _resolve_primitive_type(type_option: TypeOptions) -> str:
+        """
+        Maps a TypeOptions enum member to its Python type string.
+        """
+        if type_option in TypeOptions:
+            return type_option.value
+        raise TypeError(f"Expected TypeOptions enum, got {type_option}")
+
+    def _resolve_association(association: str) -> str:
+        """
+        Normalize an association kind string to a canonical lower-case form.
+
+        Args:
+            association: The raw association kind string.
+        """
+        return association.lower()
 
 
 @dataclass(eq=True)
@@ -103,10 +192,43 @@ class ClassDescriptor(Descriptor):
     class_name: str
     fields: list[FieldDescriptor]
 
+    @classmethod
+    def from_meta_class(cls, meta_class: MetaClass) -> ClassDescriptor:
+        """
+        Build a ClassDescriptor for a meta-model class.
+
+        Iterates over all attributes and associations of the given MetaClass,
+        converting each to a FieldDescriptor and collecting them into a single
+        ClassDescriptor.
+
+        Args:
+            meta_class: The MetaClass instance to convert.
+        """
+        association_fields = []
+        for assoc in meta_class.associations:
+            if isinstance(assoc, OpenAssociation):
+                logger.warning(
+                    f"Association '{assoc.name}' in class '{meta_class.name}' is an OpenAssociation. "
+                    f"It was not resolved and will be skipped in code generation."
+                )
+                continue
+            association_fields.append(FieldDescriptor.from_association(assoc))
+
+        return cls(
+            class_name=meta_class.name,
+            fields=[
+                FieldDescriptor.from_attribute(attr)
+                for attr in meta_class.attributes
+            ] + association_fields,
+        )
+
     @property
     def sorted_fields(self) -> list[FieldDescriptor]:
         """Required fields first, then fields with defaults."""
         return sorted(self.fields, key=lambda f: f.has_default)
+    
+    def accpet(self, visitor: Visitor) -> None:
+        visitor.visit_class(self)
 
 
 @dataclass(eq=True)
@@ -123,142 +245,48 @@ class EnumDescriptor(Descriptor):
     enum_name: str
     options: dict[str,str]
 
+    @classmethod
+    def from_meta_enum(cls, enum: MetaEnum):
+        """
+        Build an EnumDescriptor for a meta-model enumeration.
+
+        Args:
+            enum: The MetaEnum instance to convert.
+        """
+        enum_values: dict[str, str] = {}
+        for meta_enum_literal in enum.values:
+            enum_values[meta_enum_literal.name] = meta_enum_literal.value
+        return cls(enum_name=enum.name, options=enum_values)
+    
+    def accpet(self, visitor: Visitor) -> None:
+        visitor.visit_enum(self)
+
 
 @dataclass
 class TemplateContext:
     """
-    The top-level object passed into every Jinja2 template.
+    Top-level object passed into every Jinja2 template.
 
-    Bundles all descriptors that a template may need, keeping the template
-    environment free of metamodel types.
+    Bundles all descriptors a template may need, keeping templates
+    free of metamodel types. Dependency ordering is the caller's responsibility.
 
     Attributes:
-        classes: All class descriptors, in the order they appear in the
-                 metamodel (dependency ordering is the caller's responsibility).
+        classes: All class descriptors, in metamodel order.
         enums:   All enum descriptors, in declaration order.
     """
     classes: list[ClassDescriptor]
     enums: list[EnumDescriptor]
 
-
-def resolve_primitive_type(type_option: TypeOptions) -> str:
-    if type_option in TypeOptions:
-        return type_option.value
-    raise TypeError(f"Expected TypeOptions enum, got {type_option}")
-
-
-def field_descriptor_from_attribute(attribute: Attribute) -> FieldDescriptor:
-    print(f"Creating Field with the title: {attribute.name}")
-    primitive_type = resolve_primitive_type(attribute.attribute_type)
-    multiplicity = MultiplicityOptions(attribute.multiplicity or "ANY")
-
-    return FieldDescriptor(
-        field_name=attribute.name,
-        base_type=primitive_type,
-        multiplicity=multiplicity,
-        default=attribute.default_value,
-        is_meta_enum=False,
-        is_association=False,
-        association_kind=None,
-    )
-
-
-def resolve_association(association: str) -> str:
-    """
-    Normalize an association kind string to a canonical lower-case form.
-
-    Args:
-        association: The raw association kind string.
-    """
-    return association.lower()
-
-
-def field_descriptor_from_association(association: Association) -> FieldDescriptor:
-    """
-    Build a FieldDescriptor for a class association (reference to another class).
-
-    Resolves the association's multiplicity against the target class name to
-    produce the appropriate type hint and default value, then wraps everything
-    in a FieldDescriptor.
-
-    Args:
-        association: The Association instance from the meta-model.
-    """
-    print(f"Creating Field with the title: {association.name}")
-    multiplicity = MultiplicityOptions(association.multiplicity or "ANY")
-
-
-    return FieldDescriptor(
-        field_name=association.name,
-        base_type=association.association_target.name,
-        multiplicity=multiplicity,
-        default=association.default_value,
-        is_meta_enum=isinstance(association.association_target, MetaEnum),
-        is_association=True,
-        association_kind=resolve_association(association.association_type),
-    )
-
-
-def create_class_descriptor(cls: MetaClass) -> ClassDescriptor:
-    """
-    Build a ClassDescriptor for a meta-model class.
-
-    Iterates over all attributes and associations of the given MetaClass,
-    converting each to a FieldDescriptor and collecting them into a single
-    ClassDescriptor.
-
-    Args:
-        cls: The MetaClass instance to convert.
-    """
-    print(f"Creating Class-View with the title: {cls.name}")
-    class_view = ClassDescriptor(class_name=cls.name, fields=[])
-
-    for attribute in cls.attributes:
-        class_view.fields.append(field_descriptor_from_attribute(attribute))
-
-    for association in cls.associations:
-        if isinstance(association, OpenAssociation):
-            logger.warning(
-                f"Association '{association.name}' in class '{cls.name}' is an OpenAssociation. "
-                f"It was not resolved and will be skipped in code generation."
-            )
-            continue
-        class_view.fields.append(field_descriptor_from_association(association))
-
-    return class_view
-
-
-def create_enum_descriptor(enum: MetaEnum):
-    """
-    Build an EnumDescriptor for a meta-model enumeration.
-
-    Args:
-        enum: The MetaEnum instance to convert.
-    """
-    print(f"Creating Enum-View with the title: {enum.name}")
-    enum_values: dict[str, str] = {}
-    for meta_enum_literal in enum.values:
-        enum_values[meta_enum_literal.name] = meta_enum_literal.value
-    return EnumDescriptor(enum_name=enum.name, options=enum_values)
-
-
-def create_descriptors(meta_model: MetaModel) -> dict[str, list[Descriptor]]:
-    """
-    Convert an entire MetaModel into a dictionary of class and enum descriptors.
-
-    Iterates over all classes and enumerations in the meta-model, building a
-    ClassDescriptor for each class and an EnumDescriptor for each enum.
-
-    Args:
-        meta_model: The MetaModel instance containing all classes and enums.
-    """
-    class_views: list[ClassDescriptor] = []
-    enum_views: list[EnumDescriptor] = []
-
-    for cls in meta_model.classes:
-        class_views.append(create_class_descriptor(cls))
-
-    for enum in meta_model.enums:
-        enum_views.append(create_enum_descriptor(enum))
-
-    return {"classes": class_views, "enums": enum_views}
+    @classmethod
+    def from_meta_model(cls, meta_model: MetaModel) -> "TemplateContext":
+        """Build a TemplateContext from a MetaModel instance."""
+        return cls(
+            classes=[ClassDescriptor.from_meta_class(c) for c in meta_model.classes],
+            enums=[EnumDescriptor.from_meta_enum(e) for e in meta_model.enums],
+        )
+    
+    def to_dict(self) -> dict:
+        return {
+            "classes": self.classes,
+            "enums": self.enums,
+        }
