@@ -10,13 +10,45 @@ pip install -r requirements.txt
 
 ## Usage
 
-Currently the programm is executable via the commandline. To run it enter:
+MOMENT is executable via the command line:
 
 ```bash
-python -m src.main <path-to-meta-model>
+python -m src.main <path-to-metamodel> [OPTIONS]
 ```
 
-The meta-model has to be a .json file.
+The metamodel must be a `.json` file.
+
+### Arguments
+
+| Argument            | Description                        |
+|---------------------|------------------------------------|
+| `path-to-metamodel` | Path to the metamodel JSON file    |
+
+### Options
+
+| Option                        | Description                                                                 |
+|-------------------------------|-----------------------------------------------------------------------------|
+| `-s`, `--serialize <format>`  | Serialize the parsed metamodel to the given format (`json` or `xml`)        |
+
+### Examples
+
+Generate Python API code from a metamodel:
+
+```bash
+python -m src.main path/to/metamodel.json
+```
+
+Serialize the metamodel to JSON:
+
+```bash
+python -m src.main path/to/metamodel.json --serialize json
+```
+
+Serialize the metamodel to XML:
+
+```bash
+python -m src.main path/to/metamodel.json --serialize xml
+```
 
 ## Testing
 

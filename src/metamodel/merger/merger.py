@@ -1,140 +1,115 @@
 from __future__ import annotations
-from pathlib import Path
 import logging
+from pathlib import Path
+
+from ...metameta.m_m_m_classes import MetaClass, MetaModel, OpenAssociation
+from ...metamodel.parser import parse_meta_model
 from ...shared.load_json_as_dict import load_json_as_dict
-from .structure import structure_data
-from ...runtime_config import RuntimeConfig
-from .acronym_generator import generate_unique_acronym
-from ...metameta.m_m_m_dicts import (
-    MetaModelDict,
-    MetaModelInfoDict,
-    MetaClassDict,
-    MetaEnumDict
-)
+from ...shared.structure import structure_data
 
 logger = logging.getLogger(__name__)
 
 
-def merge_meta_models(path: Path, config: RuntimeConfig) -> MetaModelDict:
-    """Entry point for the merger that loads the main Meta-Model and all available
-    sub-Meta-Models, merges them and returns the merged Meta-Model as a dictionary.
-
-    Args:
-        path (Path): The path to the directory containing the Meta-Model files.
-
-    Returns:
-        MetaModelDict: The merged Meta-Model as a dictionary.
-    """
-
-    merged_meta_model: MetaModelDict = {"name": "", "enums": [], "classes": []}
-    meta_models: dict[str, MetaModelInfoDict] = {}
-
-    main_name = _load_main(path, meta_models)
-    merged_meta_model["name"] = main_name
-    _load_available_sub_meta_models(path, meta_models, config)
-
-    _merge_model(main_name, merged_meta_model, meta_models)
-
-    return merged_meta_model
+class ModelMergeError(Exception):
+    """Base exception for model merging errors."""
 
 
-def _merge_model(
-    name: str,
-    merged_meta_model: MetaModelDict,
-    meta_models: dict[str, MetaModelInfoDict],
-) -> None:
-    """Recursively merges the Meta-Model with the given name into the merged_meta_model."""
-    logger.debug(f"Merging model with name '{name}.'")
+class MetaModelMerger:
+    def __init__(self, main_model: MetaModel, main_import_path: Path):
+        self.main_model = main_model
+        self.visited_paths: set[Path] = {main_import_path}
 
-    enums = meta_models[name]["model_dict"]["enums"]
-    classes = meta_models[name]["model_dict"]["classes"]
-    prefix = meta_models[name]["prefix"]
+    def merge(self) -> MetaModel:
+        """Entry point for the merger that loads the main Meta-Model and all available
+        sub-Meta-Models, merges them and returns the merged Meta-Model.
+        Returns:
+            MetaModel: The merged Meta-Model.
+        """
+        self._find_and_merge_imports()
+        self._resolve_all_open_references()
+        self._verify_all_resolved()
+        return self.main_model
 
-    merged_meta_model["enums"] += _prefix_names(enums, prefix)
-    merged_meta_model["classes"] += _prefix_names(classes, prefix)
+    def _find_and_merge_imports(self) -> None:
+        """Recursively finds and merges all imported sub-models into the main model."""
+        processed_classes: set[int] = set()
 
-    meta_models[name]["merged"] = True
+        while True:
+            unprocessed = [
+                c for c in self.main_model.classes if id(c) not in processed_classes
+            ]
+            if not unprocessed:
+                break
 
-    _find_imports(classes, merged_meta_model, meta_models)
+            for cls in unprocessed:
+                processed_classes.add(id(cls))
+                for assoc in cls.associations:
+                    if (
+                        assoc.import_link
+                        and assoc.import_link not in self.visited_paths
+                    ):
+                        self._load_and_merge_path(assoc.import_link)
 
+    def _load_and_merge_path(self, path: Path) -> None:
+        self.visited_paths.add(path)
+        logger.info("Importing Meta-Model from path: %s", path)
 
-def _find_imports(
-    classes: list[MetaClassDict],
-    merged_meta_model: MetaModelDict,
-    meta_models: dict[str, MetaModelInfoDict],
-) -> None:
-    """Finds all imports in the given classes and merges the corresponding
-    Meta-Models if they have not been merged yet."""
-    for cls in classes:
-        for element in cls["attributes"] + cls["associations"]:
-            if "import_" in element.keys():
-                name = element.pop("import_",None)
-                if name is None:
+        raw_dict = load_json_as_dict(path)
+        meta_model_dict = structure_data(raw_dict)
+        if meta_model_dict is None:
+            raise ModelMergeError(
+                f"The Meta_Model_Dict with path '{path}' could not be loaded."
+            )
+
+        new_model = parse_meta_model(meta_model_dict)
+        self._merge_models(new_model)
+
+    def _merge_models(self, new_model: MetaModel) -> None:
+        existing_names = {cls.name for cls in self.main_model.classes}
+        for cls in new_model.classes:
+            if cls.name in existing_names:
+                raise ModelMergeError(
+                    f"Class name '{cls.name}' from model '{new_model.name}' is not unique."
+                )
+
+        self.main_model.classes.extend(new_model.classes)
+        self.main_model.enums.extend(new_model.enums)
+
+    def _resolve_all_open_references(self) -> None:
+        class_map = {cls.name: cls for cls in self.main_model.classes}
+        enum_map = {enum.name: enum for enum in self.main_model.enums}
+
+        for cls in self.main_model.classes:
+            for open_assoc in list(cls.associations):
+                if not isinstance(open_assoc, OpenAssociation):
                     continue
-                if name in meta_models.keys():
-                    model = meta_models[name]
-                    prefix = model["prefix"]
-                    if "target" in element.keys():
-                        element["target"] = prefix + element["target"]
-                    else:
-                        element["attribute_type"] = prefix + element["attribute_type"]
-                    if not model["merged"]:
-                        _merge_model(name, merged_meta_model, meta_models)
+
+                target_name = open_assoc.association_target_name
+                if target := class_map.get(target_name) or enum_map.get(target_name):
+                    cls.associations.append(open_assoc.to_association(target))
+                    cls.associations.remove(open_assoc)
                 else:
-                    logger.info(
-                        f"The Meta-Model with the Title '{name}' "
-                        f"that is imported in the element with the name "
-                        f"'{cls['name']}' could not be found among the available Meta-Models."
+                    logger.warning(
+                        "Association '%s' in class '%s' could not be resolved. "
+                        "No class/enum '%s' found.",
+                        open_assoc.name,
+                        cls.name,
+                        target_name,
                     )
 
-
-def _prefix_names(
-    list_of_element_dicts: list[MetaClassDict | MetaEnumDict], prefix: str
-) -> list[MetaClassDict | MetaEnumDict]:
-    """Prefixes the names of the given list of element dictionaries with the given prefix."""
-    for element_dict in list_of_element_dicts:
-        element_dict["name"] = prefix + element_dict["name"]
-        print(f"Prefixed element with name '{element_dict['name']}' with prefix '{prefix}'.")
-    return list_of_element_dicts
-
-
-def _load_available_sub_meta_models(
-    path: Path, meta_models: dict[str, MetaModelInfoDict], config: RuntimeConfig
-) -> None:
-    """Loads all available sub-Meta-Models from the given path and adds them
-    to the meta-models dictionary."""
-    for model_path in config.submodel_dir.glob("*.json"):
-        logger.debug(f"Found Sub-Meta-Model: {model_path.name}")
-        model = structure_data(load_json_as_dict(model_path))
-        model_name = model["name"]
-        prefix = generate_unique_acronym(
-            model_name, [model["prefix"][:-1] for model in meta_models.values()]
-        )
-
-        meta_models[model_name] = {
-            "prefix": prefix,
-            "model_dict": model,
-            "merged": False,
-        }
-        logger.debug(
-            f"Added Meta-Model with Name: '{model_name}' with prefix: '{prefix[:-1]}' to "
-            f"available Models."
-        )
+    def _verify_all_resolved(self) -> bool:
+        unresolved = [
+            assoc.name
+            for obj in self.main_model.classes
+            for assoc in obj.associations
+            if isinstance(assoc, OpenAssociation)
+        ]
+        if unresolved:
+            logger.warning("Unresolved Associations remaining: %s", unresolved)
+            return False
+        return True
 
 
-def _load_main(path: Path, meta_models: dict[str, MetaModelInfoDict]) -> str:
-    """Loads the main Meta-Model from the given path and adds it to the meta-models dictionary."""
-    model: MetaModelDict = structure_data(load_json_as_dict(path))
-    model_name = model["name"]
-    prefix = ""
-
-    meta_models[model_name] = {
-        "prefix": prefix,
-        "model_dict": model,
-        "merged": False,
-    }
-    logger.debug(
-        f"Added the Main-Meta-Model with Name: {model_name} to avilable Models."
-    )
-
-    return model_name
+def merge_meta_models(metamodel: MetaModel, main_import_path: Path) -> MetaModel:
+    """Entry point for merging the main Meta-Model with all sub-models."""
+    return MetaModelMerger(metamodel, main_import_path).merge()
