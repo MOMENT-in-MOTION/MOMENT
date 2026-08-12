@@ -5,5 +5,6 @@
     "StrictPrivacy": "true",
     "UseDoubleUnderscore": "false",
     "ExplicitTypeSafety": "true",
-    "NamingConvention": "snake_case"
+    "NamingConvention": "snake_case",
+    "RelativeImports": "true"
 }

@@ -4,7 +4,7 @@ import argparse
 
 from pathlib import Path
 
-from .config import METAMODEL_API_DIR, TEMPLATES_DIR
+from .config import PROJECT_ROOT, TEMPLATES_DIR
 
 from .metamodel.parser import parse_meta_model
 from .metamodel.codegenerator import (
@@ -37,6 +37,14 @@ def main():
         choices=["json", "xml"],
         help="Serialize the parsed metamodel to the given format instead of generating code"
     )
+    parser.add_argument(
+        "-o", "--output",
+        metavar="output_path",
+        type=Path,
+        default=Path(PROJECT_ROOT / "output"),
+        help="Output directory for generated files (default: project-root/output/)",
+        required=False
+    )
     args = parser.parse_args()
 
     if not args.metamodel.endswith(".json"):
@@ -64,15 +72,19 @@ def main():
 
         serializer = get_serializer(args.serialize) if args.serialize is not None else None
 
+        # create output dir if it doesn't exist
+        args.output.mkdir(parents=True, exist_ok=True)
+
         generated_code = generate_meta_model_api(
             meta_model=metamodel,
             api_config=api_config,
             formatter=formatter,
             templates_dir=TEMPLATES_DIR,
-            serializer=serializer
+            serializer=serializer,
+            output_path=args.output
         )
 
-        write_generated_code(generated_code=generated_code, output_dir=METAMODEL_API_DIR)
+        write_generated_code(generated_code=generated_code, output_dir=args.output)
     else:
         raise ValueError(f"API configuration could not be loaded. "
                          f"Please check the configuration file at this path: {path}")

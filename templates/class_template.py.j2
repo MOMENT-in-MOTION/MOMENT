@@ -4,7 +4,11 @@
 {% block imports %}
 from __future__ import annotations
 {% if enums is defined and enums|length > 0 %}
+{% if api_config.RelativeImports == "true" %}
 from .enum_code import *
+{% else %}
+from enum_code import *
+{% endif %}
 {% endif %}
 {% endblock %}
 
