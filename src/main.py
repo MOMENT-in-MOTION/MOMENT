@@ -13,10 +13,10 @@ from .metamodel.codegenerator import (
     get_formatter,
     get_serializer
 )
+from .metamodel.merger import merge_meta_models, UnreachableClassError, ModelMergeError
 from .shared.structure import structure_data
 from .shared.load_json_as_dict import load_json_as_dict
 from .shared.configure_logging import configure_logging
-from .metamodel.merger import merge_meta_models
 
 
 logger = logging.getLogger(__name__)
@@ -56,38 +56,44 @@ def main():
 
     try:
         meta_model_dict = structure_data(load_json_as_dict(metamodel_dir))
-    except IOError as e:
-        print(getattr(e, "message", str(e)))
-        sys.exit(1)
 
-    metamodel = parse_meta_model(meta_model_dict=meta_model_dict)
-    merge_meta_models(metamodel, metamodel_dir)
-    logger.debug(metamodel.pretty())
+        path=Path("src/api_config.json")
+        api_config = load_json_as_dict(path)
+        allow_unreachable = api_config.get("AllowUnreachableClasses", "false").lower() == "true"
 
-    path=Path("src/api_config.json")
-
-    api_config = load_json_as_dict(path)
-    if api_config is not None:
-        formatter = get_formatter(api_config["NamingConvention"])
-
-        serializer = get_serializer(args.serialize) if args.serialize is not None else None
-
-        # create output dir if it doesn't exist
-        args.output.mkdir(parents=True, exist_ok=True)
-
-        generated_code = generate_meta_model_api(
-            meta_model=metamodel,
-            api_config=api_config,
-            formatter=formatter,
-            templates_dir=TEMPLATES_DIR,
-            serializer=serializer,
-            output_path=args.output
+        metamodel = parse_meta_model(meta_model_dict=meta_model_dict)
+        merge_meta_models(
+            metamodel,
+            metamodel_dir,
+            allow_unreachable_classes=allow_unreachable
         )
 
-        write_generated_code(generated_code=generated_code, output_dir=args.output)
-    else:
-        raise ValueError(f"API configuration could not be loaded. "
-                         f"Please check the configuration file at this path: {path}")
+        logger.debug(metamodel.pretty())
+
+        if api_config is not None:
+            formatter = get_formatter(api_config["NamingConvention"])
+
+            serializer = get_serializer(args.serialize) if args.serialize is not None else None
+
+            # create output dir if it doesn't exist
+            args.output.mkdir(parents=True, exist_ok=True)
+
+            generated_code = generate_meta_model_api(
+                meta_model=metamodel,
+                api_config=api_config,
+                formatter=formatter,
+                templates_dir=TEMPLATES_DIR,
+                serializer=serializer,
+                output_path=args.output
+            )
+
+            write_generated_code(generated_code=generated_code, output_dir=args.output)
+        else:
+            raise ValueError(f"API configuration could not be loaded. "
+                                f"Please check the configuration file at this path: {path}")
+    except (UnreachableClassError, ModelMergeError, IOError) as e:
+        print(f"{type(e).__name__}: {e}", file=sys.stderr)
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

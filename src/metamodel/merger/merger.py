@@ -14,10 +14,15 @@ class ModelMergeError(Exception):
     """Base exception for model merging errors."""
 
 
+class UnreachableClassError(ModelMergeError):
+    """Raised when a class is not reachable from the root class in the merged model."""
+
+
 class MetaModelMerger:
-    def __init__(self, main_model: MetaModel, main_import_path: Path):
+    def __init__(self, main_model: MetaModel, main_import_path: Path, allow_unreachable_classes: bool = False):
         self.main_model = main_model
         self.visited_paths: set[Path] = {main_import_path}
+        self.allow_unreachable_classes = allow_unreachable_classes
 
     def merge(self) -> MetaModel:
         """Entry point for the merger that loads the main Meta-Model and all available
@@ -28,6 +33,7 @@ class MetaModelMerger:
         self._find_and_merge_imports()
         self._resolve_all_open_references()
         self._verify_all_resolved()
+        self._verify_root_class_references_all_others()
         return self.main_model
 
     def _find_and_merge_imports(self) -> None:
@@ -58,7 +64,7 @@ class MetaModelMerger:
         meta_model_dict = structure_data(raw_dict)
         if meta_model_dict is None:
             raise ModelMergeError(
-                f"The Meta_Model_Dict with path '{path}' could not be loaded."
+                f"The Meta-Model with path '{path}' could not be loaded."
             )
 
         new_model = parse_meta_model(meta_model_dict)
@@ -109,7 +115,77 @@ class MetaModelMerger:
             return False
         return True
 
+    def _verify_root_class_references_all_others(self) -> None:
+        """
+        Verify that all classes in the main model are reachable from the root class
+        by following association targets (BFS/DFS traversal).
 
-def merge_meta_models(metamodel: MetaModel, main_import_path: Path) -> MetaModel:
+        The first class in ``self.main_model.classes`` is treated as the root.
+        A class is considered reachable if it can be reached transitively via
+        associations. Enum targets that are not present in the class lookup are
+        silently skipped.
+
+        If unreachable classes are found, behaviour depends on
+        ``self.allow_unreachable_classes``:
+        - ``False`` (default): raises :exc:`UnreachableClassError`.
+        - ``True``: logs a warning and continues.
+        """
+        if not self.main_model.classes:
+            logger.warning("No root class found in the main model.")
+            return
+
+        root_class = self.main_model.classes[0]
+
+        # Build a name, MetaClass lookup for fast access
+        class_by_name: dict[str, MetaClass] = {
+            cls.name: cls for cls in self.main_model.classes
+        }
+
+        # BFS/DFS from root, following association targets
+        visited: set[str] = set()
+        queue: list[str] = [root_class.name]
+
+        while queue:
+            current_name = queue.pop()
+            if current_name in visited:
+                continue
+            visited.add(current_name)
+
+            current_cls = class_by_name.get(current_name)
+            
+            # if target is an enum then skip
+            if current_cls is None:
+                continue 
+
+            for assoc in current_cls.associations:
+                target_name = assoc.association_target.name
+
+                if target_name not in visited:
+                    queue.append(target_name)
+
+        # Everything reachable from root, minus root itself
+        reachable = visited - {root_class.name}
+        all_class_names = {cls.name for cls in self.main_model.classes[1:]}
+
+        unreachable = all_class_names - reachable
+        if unreachable:
+            if self.allow_unreachable_classes:
+                logger.warning(
+                    "The following classes are not reachable from the root class '%s': %s",
+                    root_class.name,
+                    ', '.join(sorted(unreachable))
+                )
+            else:
+                raise UnreachableClassError(
+                    "The following classes are not reachable from the root class " +
+                    f"'{root_class.name}': {', '.join(sorted(unreachable))}"
+                )
+        
+
+def merge_meta_models(
+        metamodel: MetaModel,
+        main_import_path: Path,
+        allow_unreachable_classes: bool = False
+    ) -> MetaModel:
     """Entry point for merging the main Meta-Model with all sub-models."""
-    return MetaModelMerger(metamodel, main_import_path).merge()
+    return MetaModelMerger(metamodel, main_import_path, allow_unreachable_classes).merge()

@@ -6,5 +6,6 @@
     "UseDoubleUnderscore": "false",
     "ExplicitTypeSafety": "true",
     "NamingConvention": "snake_case",
+    "AllowUnreachableClasses": "false",
     "RelativeImports": "true"
 }
