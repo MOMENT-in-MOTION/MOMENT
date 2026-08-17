@@ -4,7 +4,7 @@ import argparse
 
 from pathlib import Path
 
-from .config import PROJECT_ROOT, TEMPLATES_DIR
+from .config import PROJECT_ROOT, TEMPLATES_DIR, CONFIG_PATH
 
 from .metamodel.parser import parse_meta_model
 from .metamodel.codegenerator import (
@@ -70,6 +70,7 @@ def main():
 
         logger.debug(metamodel.pretty())
 
+        api_config = load_json_as_dict(CONFIG_PATH)
         if api_config is not None:
             formatter = get_formatter(api_config["NamingConvention"])
 
@@ -90,7 +91,7 @@ def main():
             write_generated_code(generated_code=generated_code, output_dir=args.output)
         else:
             raise ValueError(f"API configuration could not be loaded. "
-                                f"Please check the configuration file at this path: {path}")
+                                f"Please check the configuration file at this path: {CONFIG_PATH}")
     except (UnreachableClassError, ModelMergeError, IOError) as e:
         print(f"{type(e).__name__}: {e}", file=sys.stderr)
         sys.exit(1)

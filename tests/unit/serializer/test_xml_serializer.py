@@ -3,7 +3,7 @@ from xml.etree import ElementTree as ET
 import pytest
 
 from src.metamodel.codegenerator.serializer.xml_serializer import XmlSerializer
-from tests.codegenerator.utils.setup_desciptors import make_class, make_enum, make_field
+from tests.unit.utils.setup_desciptors import make_class, make_enum, make_field
 
 
 class TestXmlSerializer:
