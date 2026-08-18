@@ -23,10 +23,12 @@ class MultiplicityOptions(str, Enum):
         "ZERO_OR_ONE"  # Redundant with OPTIONAL, but may be useful for readability
     )
     OPTIONAL = "OPTIONAL"
+    RANGE = "RANGE"  # For attributes with a predefined Range of elements
+    VALUE = "VALUE"  # For attributes with a predefined set of elements
 
     @property
     def is_list(self) -> bool:
-        return self in (MultiplicityOptions.AT_LEAST_ONE, MultiplicityOptions.ANY)
+        return self in (MultiplicityOptions.AT_LEAST_ONE, MultiplicityOptions.ANY, MultiplicityOptions.RANGE, MultiplicityOptions.VALUE)
 
     @property
     def is_optional(self) -> bool:
@@ -188,6 +190,9 @@ class Attribute(MetaElement):
     attribute_type: MetaEnumLiteral
     default_value: Any | None = None
 
+    multiplicity_lower_bound: int | None = None
+    multiplicity_upper_bound: int | None = None
+
     def validate(self) -> None:
         """Validate the attribute.
 
@@ -216,6 +221,9 @@ class Association(MetaElement):
     association_target: MetaClass | MetaEnum
     import_link: Path | None = None
     default_value: Any | None = None
+    
+    multiplicity_lower_bound: int | None = None
+    multiplicity_upper_bound: int | None = None
 
     def validate(self) -> None:
         """Validate the association.
@@ -246,6 +254,9 @@ class OpenAssociation(MetaElement):
     import_link: Path | None = None
     default_value: Any | None = None
 
+    multiplicity_lower_bound: int | None = None
+    multiplicity_upper_bound: int | None = None
+
     def validate(self) -> None:
         """Validate the open association.
 
@@ -269,7 +280,10 @@ class OpenAssociation(MetaElement):
             multiplicity=self.multiplicity,
             association_type=self.association_type,
             association_target=final_target,
-            default_value=self.default_value
+            default_value=self.default_value,
+
+            multiplicity_lower_bound=self.multiplicity_lower_bound,
+            multiplicity_upper_bound=self.multiplicity_upper_bound,
         )
 
 
@@ -359,29 +373,45 @@ class MetaClass(MetaElement):
                 default = ""
                 if attr.default_value:
                     default = attr.default_value
+                if attr.multiplicity_lower_bound is not None and attr.multiplicity_upper_bound is not None:
+                    if attr.multiplicity_lower_bound == attr.multiplicity_upper_bound:
+                        multiplicity_name = attr.multiplicity_lower_bound
+                    else:
+                        multiplicity_name = f"{attr.multiplicity_lower_bound}..{attr.multiplicity_upper_bound}"
+                else:
+                    multiplicity_name = [attr.multiplicity.name]
                 result += (
                     f"{pad}    - {attr.name}: \t\t"
                     f"{attr.attribute_type.name} "
-                    f"[{attr.multiplicity.name}] "
+                    f"[{multiplicity_name}] "
                     f"{default}\n"
                 )
 
         if self.associations:
             result += f"{pad}  Associations:\n"
             for assoc in self.associations:
+
+                if assoc.multiplicity_lower_bound is not None and assoc.multiplicity_upper_bound is not None:
+                    if assoc.multiplicity_lower_bound == assoc.multiplicity_upper_bound:
+                        multiplicity_name = assoc.multiplicity_lower_bound
+                    else:
+                        multiplicity_name = f"{assoc.multiplicity_lower_bound}..{assoc.multiplicity_upper_bound}"
+                else:
+                    multiplicity_name = [assoc.multiplicity.name]
+                
                 if isinstance(assoc, OpenAssociation):
                     result += (
                         f"{pad}    -> Open Association {assoc.name} "
                         f"({assoc.association_type.name}) "
                         f"\t-> {assoc.association_target_name} "
-                        f"[{assoc.multiplicity.name}]\n"
+                        f"[{multiplicity_name}]\n"
                     )
                 else:
                     result += (
                         f"{pad}    -> {assoc.name} "
                         f"({assoc.association_type.name}) "
                         f"\t-> {assoc.association_target.name} "
-                        f"[{assoc.multiplicity.name}]\n"
+                        f"[{multiplicity_name}]\n"
                     )
 
         return result

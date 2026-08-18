@@ -44,6 +44,8 @@ class MetaAttributesDict(ImportableDict):
     attribute_type: str
     multiplicity: str
     default_value: NotRequired[str | int]
+    multiplicity_lower_bound: NotRequired[int]
+    multiplicity_upper_bound: NotRequired[int]
 
 
 class MetaAssociationsDict(ImportableDict):
@@ -55,7 +57,8 @@ class MetaAssociationsDict(ImportableDict):
     target: str
     default_value: NotRequired[str | int]
     import_path: NotRequired[Path]
-
+    multiplicity_lower_bound: NotRequired[int]
+    multiplicity_upper_bound: NotRequired[int]
 
 
 class MetaEnumLiteralDict(TypedDict):

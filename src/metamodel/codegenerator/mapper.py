@@ -70,6 +70,8 @@ class FieldDescriptor(Descriptor):
         is_association:   True when derived from an Association.
         is_meta_enum:     True when base_type refers to a MetaEnum.
         association_kind: 'composition', 'reference', or None.
+        multiplicity_lower_bound: Lower bound of the multiplicity, or None if not specified.
+        multiplicity_upper_bound: Upper bound of the multiplicity, or None if not specified.
     """
     field_name: str
     base_type: str
@@ -78,6 +80,9 @@ class FieldDescriptor(Descriptor):
     is_meta_enum: bool
     association_kind: str | None
     default: str | None
+
+    multiplicity_lower_bound: int | None = None
+    multiplicity_upper_bound: int | None = None
 
     @classmethod
     def from_association(cls, association: Association) -> FieldDescriptor:
@@ -99,6 +104,9 @@ class FieldDescriptor(Descriptor):
             is_meta_enum=isinstance(association.association_target, MetaEnum),
             is_association=True,
             association_kind=cls._resolve_association(association.association_type),
+            
+            multiplicity_lower_bound=association.multiplicity_lower_bound,
+            multiplicity_upper_bound=association.multiplicity_upper_bound,
         )
 
     @classmethod
@@ -119,6 +127,9 @@ class FieldDescriptor(Descriptor):
             is_meta_enum=False,
             is_association=False,
             association_kind=None,
+            
+            multiplicity_lower_bound=attribute.multiplicity_lower_bound,
+            multiplicity_upper_bound=attribute.multiplicity_upper_bound,
         )
 
     @property

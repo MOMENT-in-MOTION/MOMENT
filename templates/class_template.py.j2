@@ -26,6 +26,15 @@ class {{ cls.class_name }}:
     {% for f in cls.sorted_fields %}
         {% set _attr = ("__" if api_config.UseDoubleUnderscore == "true" else "_" if api_config.StrictPrivacy == "true" else "") + f.field_name %}
         {{ _attr }}: {{ f.type_hint }}{% if f.has_default %} = {{ f.rendered_default }}{% endif %} 
+        {% if f.multiplicity_lower_bound is not none and f.multiplicity_upper_bound is not none %}
+        {% if f.multiplicity_lower_bound == f.multiplicity_upper_bound %}
+            This field has a fixed multiplicity of {{ f.multiplicity_lower_bound }} elements
+        {% else %}
+            has to be between {{ f.multiplicity_lower_bound }} and {{ f.multiplicity_upper_bound }} elements
+        {% endif %}
+        {% endif %}
+        {% if not loop.last %}
+        {% endif %}
     {% endfor %}
     """
     {% for f in cls.sorted_fields %}
@@ -33,12 +42,20 @@ class {{ cls.class_name }}:
     {% if api_config.StrictPrivacy == "true" %}
         {% if api_config.UseDoubleUnderscore == "true" %}
     __{{ render_field(f) }}
+        {% if f.multiplicity_lower_bound is not none and f.multiplicity_upper_bound is not none %}
+        {% endif %}
         {% else %}
     _{{ render_field(f) }}
+        {% if f.multiplicity_lower_bound is not none and f.multiplicity_upper_bound is not none %}
+        {% endif %}
         {% endif %}
     {%- else %}
     {{ render_field(f) }}
+    {% if f.multiplicity_lower_bound is not none and f.multiplicity_upper_bound is not none %}
+        {% endif %}
     {% endif %}
+    _{{f.field_name}}_multiplicity_lower_bound = int
+    _{{f.field_name}}_multiplicity_upper_bound = int
     {% endfor %}
 
     {% if api_config.GenerateConstructors == "true" %}
@@ -49,7 +66,15 @@ class {{ cls.class_name }}:
     ) -> None:
         """Generated constructor for {{ cls.class_name }}"""
         {% for f in cls.sorted_fields %}
-        {% set _attr = ("__" if api_config.UseDoubleUnderscore == "true" else "_" if api_config.StrictPrivacy == "true" else "") + f.field_name %}
+        {% set _attr = ("_" if api_config.UseDoubleUnderscore == "true" else "_" if api_config.StrictPrivacy == "true" else "") + f.field_name %}
+        {% if f.multiplicity_lower_bound is not none and f.multiplicity_upper_bound is not none %}
+        self._{{f.field_name}}_multiplicity_lower_bound = {{f.multiplicity_lower_bound}}
+        self._{{f.field_name}}_multiplicity_upper_bound = {{f.multiplicity_upper_bound}}
+        {% if f.multiplicity_lower_bound == f.multiplicity_upper_bound %}
+        if not (self._{{f.field_name}}_multiplicity_lower_bound <= len({{f.field_name}}) <= self._{{f.field_name}}_multiplicity_upper_bound):
+            raise ValueError(f"Field '{{_attr}}' must have between {{f.multiplicity_lower_bound}} and {{f.multiplicity_upper_bound}} elements, got {len({{f.field_name}})}")
+        {% endif %}
+        {% endif %}
         self.{{_attr}} = {{f.field_name}}
         {% endfor %}
     {% endif %}
@@ -93,9 +118,13 @@ class {{ cls.class_name }}:
                 raise TypeError(f"Expected type {{f.base_type}} or None for field '{{_attr}}', got {type(value)}")
             {% endif %}
         {% else %}
-        {% if f.multiplicity.is_list %}
+        {% if f.multiplicity.is_list or (f.multiplicity_lower_bound is not none and f.multiplicity_upper_bound is not none) %}
         if not isinstance(value, list) or not all(isinstance(i, {{f.base_type}}) for i in value):
             raise TypeError(f"Expected type list[{{f.base_type}}] for field '{{_attr}}', got {type(value)}")
+
+        if not (self._{{f.field_name}}_multiplicity_lower_bound <= len(value) <= self._{{f.field_name}}_multiplicity_upper_bound):
+            raise ValueError(f"Field '{{_attr}}' must have between {{f.multiplicity_lower_bound}} and {{f.multiplicity_upper_bound}} elements, got {len(value)}")
+    
         {% else %}
         if not isinstance(value, {{f.base_type}}):
             raise TypeError(f"Expected type {{f.base_type}} for field '{{_attr}}', got {type(value)}")

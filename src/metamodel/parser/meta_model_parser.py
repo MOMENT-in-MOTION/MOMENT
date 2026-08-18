@@ -1,4 +1,6 @@
 import logging
+from sre_constants import RANGE
+from sre_constants import RANGE
 from typing import TypeVar
 from enum import Enum
 from pathlib import Path
@@ -186,15 +188,49 @@ def _build_attribute(attribute_values: MetaAttributesDict) -> Attribute:
             f"The attribute type '{attribute_values['attribute_type']}' is"
             " not a valid TypeOption name."
         )
-
-    return Attribute(
-        name=attribute_values["name"],
-        attribute_type=attribute_type,
-        multiplicity=_test_enum_value(
-            MultiplicityOptions, attribute_values["multiplicity"]
-        ),
-        default_value=attribute_values.get("default_value"),
-    )
+    
+    #if multiplicity is a range or a value, we parse it and set lower and upper bounds accordingly
+    #Values are represented by equal lower and upper bounds.
+    if "[" in attribute_values["multiplicity"] and "]" in attribute_values["multiplicity"]:
+            multiplicity_lower_bound = None
+            multiplicity_upper_bound = None
+            MultiplicityType = MultiplicityOptions.RANGE
+            if ".." in attribute_values["multiplicity"]:
+                bounds = attribute_values["multiplicity"].strip("[]").split("..")
+                if len(bounds) != 2:
+                    raise ValueError(
+                        f"Invalid multiplicity format: {attribute_values["multiplicity"]}"
+                    )
+                try:
+                    multiplicity_lower_bound = int(bounds[0])
+                    multiplicity_upper_bound = int(bounds[1])
+                except ValueError as e:
+                    raise ValueError(
+                        f"Invalid multiplicity bounds: {attribute_values["multiplicity"]}"
+                    ) from e
+            elif attribute_values["multiplicity"].strip("[]").isdigit():
+                MultiplicityType = MultiplicityOptions.VALUE
+                multiplicity_lower_bound = int(attribute_values["multiplicity"].strip("[]"))
+                multiplicity_upper_bound = multiplicity_lower_bound
+            return Attribute(
+                name=attribute_values["name"],
+                attribute_type=attribute_type,
+                multiplicity=MultiplicityType,
+                default_value=attribute_values.get("default_value"),
+                multiplicity_lower_bound=multiplicity_lower_bound,
+                multiplicity_upper_bound=multiplicity_upper_bound
+            )
+    else:
+        return Attribute(
+            name=attribute_values["name"],
+            attribute_type=attribute_type,
+            multiplicity=_test_enum_value(
+                MultiplicityOptions, attribute_values["multiplicity"]
+            ),
+            default_value=attribute_values.get("default_value"),
+            multiplicity_lower_bound=None,
+            multiplicity_upper_bound=None
+        )
 
 
 def _build_association(association_values: MetaAssociationsDict) -> OpenAssociation:
@@ -207,18 +243,55 @@ def _build_association(association_values: MetaAssociationsDict) -> OpenAssociat
             f"Missing required keys: {missing} in attribute definition: {association_values}"
         )
     link_value = association_values.get("import_link")
-    return OpenAssociation(
-        name=association_values["name"],
-        multiplicity=_test_enum_value(
-            MultiplicityOptions, association_values["multiplicity"]
-        ),
-        association_type=_test_enum_value(
-            AssociationOptions, association_values["association_type"]
-        ),
-        association_target_name=association_values["target"],
-        default_value=association_values.get("default_value"),
-        import_link= Path(link_value) if link_value and isinstance(link_value, str) else None
-    )
+
+    #if multiplicity is a range or a value, we parse it and set lower and upper bounds accordingly
+    #Values are represented by equal lower and upper bounds.
+    if "[" in association_values["multiplicity"] and "]" in association_values["multiplicity"]:
+            multiplicity_lower_bound = None
+            multiplicity_upper_bound = None
+            MultiplicityType = MultiplicityOptions.RANGE
+            if ".." in association_values["multiplicity"]:
+                bounds = association_values["multiplicity"].strip("[]").split("..")
+                if len(bounds) != 2:
+                    raise ValueError(
+                        f"Invalid multiplicity format: {association_values["multiplicity"]}"
+                    )
+                try:
+                    multiplicity_lower_bound = int(bounds[0])
+                    multiplicity_upper_bound = int(bounds[1])
+                except ValueError as e:
+                    raise ValueError(
+                        f"Invalid multiplicity bounds: {association_values["multiplicity"]}"
+                    ) from e
+            elif association_values["multiplicity"].strip("[]").isdigit():
+                MultiplicityType = MultiplicityOptions.VALUE
+                multiplicity_lower_bound = int(association_values["multiplicity"].strip("[]"))
+                multiplicity_upper_bound = multiplicity_lower_bound
+            return OpenAssociation(
+                name=association_values["name"],
+                multiplicity=MultiplicityType,
+                association_type=_test_enum_value(
+                    AssociationOptions, association_values["association_type"]
+                ),
+                association_target_name=association_values["target"],
+                default_value=association_values.get("default_value"),
+                import_link= Path(link_value) if link_value and isinstance(link_value, str) else None,
+                multiplicity_lower_bound=multiplicity_lower_bound,
+                multiplicity_upper_bound=multiplicity_upper_bound
+            )
+    else :
+        return OpenAssociation(
+            name=association_values["name"],
+            multiplicity=_test_enum_value(
+                MultiplicityOptions, association_values["multiplicity"]
+            ),
+            association_type=_test_enum_value(
+                AssociationOptions, association_values["association_type"]
+            ),
+            association_target_name=association_values["target"],
+            default_value=association_values.get("default_value"),
+            import_link= Path(link_value) if link_value and isinstance(link_value, str) else None
+        )
 
 
 def _test_enum_value(enum: E, value: str) -> E:
