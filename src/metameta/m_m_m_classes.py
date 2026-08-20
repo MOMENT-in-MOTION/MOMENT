@@ -291,15 +291,18 @@ class MetaClass(MetaElement):
     name: str
     attributes: list[Attribute] = field(default_factory=list)
     associations: list[Association] | list[OpenAssociation] = field(default_factory=list)
+    inherits: list[str] = field(default_factory=list)
 
     def validate(self) -> None:
         """Validate the class and its contained elements.
 
         Raises:
-            ValueError: If the name is empty.
+            ValueError: If the name is empty and if the class inherits from itself.
         """
         if not self.name or self.name.strip() == "":
             raise ValueError("The MetaClass must have a non-empty name.")
+        if self.name in self.inherits:
+            raise ValueError(f"The MetaClass '{self.name}' cannot inherit from itself.")
         for attribute in self.attributes:
             attribute.validate()
         for association in self.associations:

@@ -14,7 +14,11 @@ from enum_code import *
 
 {% block body %}
 {% for cls in classes %}
+{% if api_config.Inheritance == "native" %}
+class {{ cls.class_name }}({% for base in cls.inherits %}{{ base }}{% if not loop.last %}, {% endif %}{% endfor %}):
+{% else %}
 class {{ cls.class_name }}:
+{% endif %}
     {# Generate a docstring listing the fields and their types #}
     """
     Generated dataclass for {{ cls.class_name }} 

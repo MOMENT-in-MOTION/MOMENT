@@ -22,7 +22,7 @@ def run_app(tmp_path):
         env = os.environ.copy()
         if config_path is not None:
             env["APP_CONFIG_PATH"] = str(config_path)
-        
+
         output_dir = tmp_path / "output"
         output_dir.mkdir()
 
@@ -31,7 +31,7 @@ def run_app(tmp_path):
             str(input_path),
             "--output", str(output_dir),
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True, env=env)
+        result = subprocess.run(cmd, capture_output=True, text=True, env=env, check=False)
         return output_dir, result
 
     return _run

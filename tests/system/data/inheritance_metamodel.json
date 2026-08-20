@@ -1,0 +1,58 @@
+{
+	"name": "MetaModelDummy",
+	"classes": [
+		{
+			"name": "MetaModelDummy",
+			"attributes": [
+				{
+					"name": "Name",
+					"attribute_type": "STRING",
+					"multiplicity": "ONE",
+					"default_value": "root"
+				}
+			],
+			"associations":[]
+		},
+		{
+			"name": "MetaClassDummy_1",
+            "inherits": "MetaModelDummy",
+			"attributes": [
+				{
+					"name": "TstNR",
+					"attribute_type": "INT",
+					"multiplicity": "ONE",
+					"default_value": 1
+				},
+				{
+					"name": "TestStr",
+					"attribute_type": "STRING",
+					"multiplicity": "ONE"
+				},
+				{
+					"name": "TestBool",
+					"attribute_type": "BOOL",
+					"multiplicity": "ONE",
+					"default_value": "False"
+				}
+			],
+			"associations":[]
+		},
+		{
+			"name": "Interface",
+			"attributes": [
+				{
+					"name": "SomethingCoolIsHere",
+					"attribute_type": "STRING",
+					"multiplicity": "ONE"
+				}
+			],
+			"associations":[]
+		},
+		{
+			"name": "MetaClassDummy_2",
+            "inherits": ["MetaClassDummy_1", "Interface"],
+			"attributes": [],
+			"associations":[]
+		}
+    ]
+}

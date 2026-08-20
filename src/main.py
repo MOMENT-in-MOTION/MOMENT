@@ -57,8 +57,7 @@ def main():
     try:
         meta_model_dict = structure_data(load_json_as_dict(metamodel_dir))
 
-        path=Path("src/api_config.json")
-        api_config = load_json_as_dict(path)
+        api_config = load_json_as_dict(CONFIG_PATH)
         allow_unreachable = api_config.get("AllowUnreachableClasses", "false").lower() == "true"
 
         metamodel = parse_meta_model(meta_model_dict=meta_model_dict)
@@ -70,7 +69,6 @@ def main():
 
         logger.debug(metamodel.pretty())
 
-        api_config = load_json_as_dict(CONFIG_PATH)
         if api_config is not None:
             formatter = get_formatter(api_config["NamingConvention"])
 

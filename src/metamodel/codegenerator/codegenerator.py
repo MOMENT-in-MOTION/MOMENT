@@ -38,6 +38,9 @@ def generate_meta_model_api(
     """
     j2_engine = build_engine(templates_dir)
     context = TemplateContext.from_meta_model(meta_model=meta_model)
+
+    if api_config.get("Inheritance") == "manual":
+        context.resolve_manual_inheritance()
     
     formatter.visit_context(context)
 

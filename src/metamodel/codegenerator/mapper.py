@@ -35,7 +35,7 @@ class Visitor(ABC):
     def visit_enum(self, enum_descriptor: EnumDescriptor) -> None:
         pass
 
-    def visit_context(self, context: Context) -> None:
+    def visit_context(self, context: TemplateContext) -> None:
         """Traverse all classes and enums in the context."""
         for cls in context.classes:
             self.visit_class(cls)
@@ -191,6 +191,7 @@ class ClassDescriptor(Descriptor):
     """
     class_name: str
     fields: list[FieldDescriptor]
+    inherits: list[str] | None = None
 
     @classmethod
     def from_meta_class(cls, meta_class: MetaClass) -> ClassDescriptor:
@@ -220,6 +221,7 @@ class ClassDescriptor(Descriptor):
                 FieldDescriptor.from_attribute(attr)
                 for attr in meta_class.attributes
             ] + association_fields,
+            inherits=meta_class.inherits
         )
 
     @property
@@ -284,6 +286,28 @@ class TemplateContext:
             classes=[ClassDescriptor.from_meta_class(c) for c in meta_model.classes],
             enums=[EnumDescriptor.from_meta_enum(e) for e in meta_model.enums],
         )
+
+    def resolve_manual_inheritance(self) -> None:
+        """
+        For each class, add fields from its superclasses.
+
+        This method modifies the TemplateContext in place, adding fields
+        from superclasses to subclasses. It assumes that all superclasses
+        are already present in the context.
+        """
+        class_map = {cls.class_name: cls for cls in self.classes}
+
+        for cls in self.classes:
+            for superclass_name in cls.inherits:
+                if superclass_name not in class_map:
+                    logger.warning(
+                        f"Superclass '{superclass_name}' not found for class '{cls.class_name}'."
+                    )
+                    continue
+
+                superclass = class_map[superclass_name]
+                # Add fields from the superclass to the subclass
+                cls.fields.extend(superclass.fields)
     
     def to_dict(self) -> dict:
         return {

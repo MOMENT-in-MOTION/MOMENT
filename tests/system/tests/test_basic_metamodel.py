@@ -3,6 +3,8 @@ from pathlib import Path
 
 import pytest
 
+# ignore import error for run_app fixture, as it is needed to run the tests
+# pylint: disable=W0611
 from tests.system.utils.run_app import run_app
 
 
@@ -38,7 +40,9 @@ class TestBasicClass:
         assert "set_name" in method_names
 
         # _name is assigned in __init__
-        init = next(n for n in ast.walk(cls) if isinstance(n, ast.FunctionDef) and n.name == "__init__")
+        init = next(
+            n for n in ast.walk(cls) if isinstance(n, ast.FunctionDef) and n.name == "__init__"
+        )
         assignments = [n for n in ast.walk(init) if isinstance(n, ast.Assign)]
         target_names = [
             t.attr
@@ -60,6 +64,9 @@ class TestBasicClass:
         assert isinstance(name_field.annotation, ast.Name) and name_field.annotation.id == "str"
 
         # default value is "default"
-        assert isinstance(name_field.value, ast.Constant) and isinstance(name_field.value.value, str)
+        assert isinstance(
+            name_field.value, ast.Constant
+        ) and isinstance(
+            name_field.value.value, str
+        )
         assert name_field.value.value == "default"
-
