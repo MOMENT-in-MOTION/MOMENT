@@ -105,6 +105,17 @@ class {{ cls.class_name }}:
         self.{{_attr}} = value
     {% endif %}
 
+    {# generate Has functions #}
+    {% if api_config.NamingConvention == "camelCase" %}
+    def has{{ f.field_name[0] | upper }}{{ f.field_name[1:] }}(self) -> bool:
+    {% else %}
+    def has_{{f.field_name}}(self) -> bool:
+    {% endif %}
+        """Generated has function for {{_attr}}"""
+        if self.{{_attr}} is None:
+            return False
+        return True
+
     {% endfor %}
 
     def to_dict(self) -> dict:
