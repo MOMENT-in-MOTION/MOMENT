@@ -1,7 +1,7 @@
 import pytest
 
 from src.metamodel.codegenerator.formatter.camel_case_formatter import CamelCaseFormatter
-from tests.codegenerator.utils.setup_desciptors import make_class, make_enum, make_field
+from tests.unit.utils.setup_desciptors import make_class, make_enum, make_field
 
 
 class TestCamelCaseFormatter:

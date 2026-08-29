@@ -1,0 +1,17 @@
+{
+	"name": "test",
+	"classes": [
+		{
+			"name": "MyGeneratedClass",
+			"attributes": [
+				{
+					"name": "Name",
+					"attribute_type": "STRING",
+					"multiplicity": "ONE",
+					"default_value": "default"
+				}
+			],
+			"associations": []
+        }
+    ]
+}

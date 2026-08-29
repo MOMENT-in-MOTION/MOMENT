@@ -80,7 +80,12 @@ def _build_classes(class_list: list[MetaClassDict]) -> list[MetaClass]:
 
     for cls in class_list:
         finalised_classes.append(
-            _build_class(cls["name"], cls["attributes"], cls["associations"])
+            _build_class(
+                cls["name"],
+                cls["attributes"],
+                cls["associations"],
+                cls["inherits"] if "inherits" in cls else []
+            )
         )
 
     return finalised_classes
@@ -90,6 +95,7 @@ def _build_class(
     class_name: str,
     class_attributes: list[MetaAttributesDict],
     class_associations: list[MetaAssociationsDict],
+    class_inherits: list[str] | str
 ) -> MetaClass:
     """Build a MetaClass from the given class definition."""
 
@@ -107,6 +113,11 @@ def _build_class(
         associations.append(_build_association(association))
 
     clazz.associations = associations
+
+    if isinstance(class_inherits, str):
+        clazz.inherits = [class_inherits]
+    else:
+        clazz.inherits = class_inherits
 
     CLASSES[class_name] = clazz
 

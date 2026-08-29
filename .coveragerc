@@ -1,6 +1,9 @@
 [run]
 relative_files = true
 source = src
+parallel = true
+concurrency = multiprocessing
+sigterm = true
 omit =
     */tests/*
     */__pycache__/*

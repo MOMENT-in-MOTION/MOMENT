@@ -1,5 +1,5 @@
 name: Tests and Coverage
-  
+
 on:
   pull_request:
     branches: ["**"]
@@ -9,35 +9,49 @@ on:
 permissions:
   contents: read
   pull-requests: write
-  
+
 jobs:
-  test:
+  # Job 1: Unit & Integration Tests
+  unit-integration-tests:
+    name: Unit & Integration Tests
     runs-on: ubuntu-latest
- 
+
     steps:
       - name: Check out code
         uses: actions/checkout@v4
- 
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
- 
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run tests with coverage
+      - name: Run unit & integration tests with coverage
         run: |
-          pytest --cov=src --cov-report=xml --cov-report=html --cov-report=term-missing
+          pytest tests/unit/ tests/integration/ \
+            --cov=src \
+            --cov-report=xml:coverage-unit-integration.xml \
+            --cov-report=html:htmlcov-unit-integration/ \
+            --cov-report=term-missing
 
       - name: Upload coverage artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report-${{ matrix.python-version }}
-          path: htmlcov/
+          name: coverage-report-unit-integration
+          path: htmlcov-unit-integration/
+          retention-days: 30
+
+      - name: Upload coverage XML (for PR comment)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml-unit-integration
+          path: coverage-unit-integration.xml
           retention-days: 30
 
       - name: Comment PR with coverage
@@ -47,3 +61,62 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           MINIMUM_GREEN: 80
           MINIMUM_ORANGE: 60
+
+  # Job 2: System Tests
+  system-tests:
+    name: System Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run system tests with subprocess coverage
+        env:
+          # coverage-enable-subprocess reads this env var to auto-activate
+          # coverage in every child process.
+          COVERAGE_PROCESS_START: .coveragerc
+        run: |
+          coverage run -m pytest tests/system/ -p no:cov
+
+      - name: Combine parallel coverage data from all subprocesses
+        run: |
+          coverage combine
+          coverage xml  -o coverage-system.xml
+          coverage html -d htmlcov-system/
+          coverage report --show-missing
+
+      - name: Upload system coverage HTML artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-system
+          path: htmlcov-system/
+          retention-days: 30
+
+      - name: Upload system coverage XML artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml-system
+          path: coverage-system.xml
+          retention-days: 30
+
+      - name: Comment PR with system test coverage
+        if: github.event_name == 'pull_request'
+        uses: py-cov-action/python-coverage-comment-action@v3
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          MINIMUM_GREEN: 80
+          MINIMUM_ORANGE: 60
+          SUBPROJECT_ID: system

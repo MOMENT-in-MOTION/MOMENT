@@ -89,7 +89,7 @@ class TestCodeGeneratorIntegration:
     """Integration tests for the code generation workflow."""
 
     def test_generate_meta_model_api_returns_dict_with_keys(
-        self, tmp_path, meta_model_with_associations
+        self, meta_model_with_associations
     ):
         """Test that generate_meta_model_api returns expected dictionary keys."""
         with TemporaryDirectory() as tmpdir:
@@ -110,7 +110,8 @@ class TestCodeGeneratorIntegration:
                 api_config=api_config,
                 formatter=formatter,
                 templates_dir=templates_dir,
-                output_path=tmp_path
+                output_path=Path(tmpdir),
+
             )
 
             assert isinstance(result, dict)

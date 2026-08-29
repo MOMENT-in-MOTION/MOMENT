@@ -1,7 +1,7 @@
 import pytest
 
 from src.metamodel.codegenerator.formatter.snake_case_formatter import SnakeCaseFormatter
-from tests.codegenerator.utils.setup_desciptors import make_class, make_enum, make_field
+from tests.unit.utils.setup_desciptors import make_class, make_enum, make_field
 
 
 class TestSnakeCaseFormatter:
