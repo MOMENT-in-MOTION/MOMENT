@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from ...metameta.m_m_m_classes import MetaModel
-from ...config import TEMPLATES_DIR, METAMODEL_API_DIR
+from ...config import TEMPLATES_DIR
 
 from .jinja_engine import render, build_engine
 from .mapper import TemplateContext
@@ -14,6 +14,7 @@ def generate_meta_model_api(
     api_config: dict[str],
     formatter: Formatter,
     templates_dir: Path,
+    output_path: Path,
     serializer: Serializer | None = None,
 ) -> dict[str, str]:
     """
@@ -37,11 +38,14 @@ def generate_meta_model_api(
     """
     j2_engine = build_engine(templates_dir)
     context = TemplateContext.from_meta_model(meta_model=meta_model)
+
+    if api_config.get("Inheritance") == "manual":
+        context.resolve_manual_inheritance()
     
     formatter.visit_context(context)
 
     if serializer is not None:
-        serialize_context(context, api_config, serializer, METAMODEL_API_DIR)
+        serialize_context(context, api_config, serializer, output_path)
 
     context_dict = context.to_dict()
     context_dict.update({"api_config": api_config})
@@ -50,11 +54,13 @@ def generate_meta_model_api(
 
 
 def _render_templates(j2_engine, context_dict: dict) -> dict[str, str]:
-    """Render the dataclass and enum templates against the prepared context."""
-    return {
+    result = {
         "class_code": render(j2_engine, "class_template.py.j2", context_dict),
-        "enum_code":      render(j2_engine, "enum_template.py.j2", context_dict),
+        "enum_code": render(j2_engine, "enum_template.py.j2", context_dict),
     }
+    if context_dict.get("api_config", {}).get("RelativeImports") == "true":
+        result["__init__"] = ""
+    return result
 
 
 def write_generated_code(generated_code: dict[str, str], output_dir: Path) -> None:

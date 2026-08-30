@@ -2,7 +2,7 @@ import json
 import pytest
 
 from src.metamodel.codegenerator.serializer.json_serializer import JsonSerializer
-from tests.codegenerator.utils.setup_desciptors import make_class, make_enum, make_field
+from tests.unit.utils.setup_desciptors import make_class, make_enum, make_field
 
 
 class TestJsonSerializer:

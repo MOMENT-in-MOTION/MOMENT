@@ -29,6 +29,7 @@ The metamodel must be a `.json` file.
 | Option                        | Description                                                                 |
 |-------------------------------|-----------------------------------------------------------------------------|
 | `-s`, `--serialize <format>`  | Serialize the parsed metamodel to the given format (`json` or `xml`)        |
+| `-o`, `--output <path>`       | Output directory for generated files (default: `project-root/output/`)      |
 
 ### Examples
 

@@ -4,13 +4,21 @@
 {% block imports %}
 from __future__ import annotations
 {% if enums is defined and enums|length > 0 %}
+{% if api_config.RelativeImports == "true" %}
 from .enum_code import *
+{% else %}
+from enum_code import *
+{% endif %}
 {% endif %}
 {% endblock %}
 
 {% block body %}
 {% for cls in classes %}
+{% if api_config.Inheritance == "native" %}
+class {{ cls.class_name }}({% for base in cls.inherits %}{{ base }}{% if not loop.last %}, {% endif %}{% endfor %}):
+{% else %}
 class {{ cls.class_name }}:
+{% endif %}
     {# Generate a docstring listing the fields and their types #}
     """
     Generated dataclass for {{ cls.class_name }} 

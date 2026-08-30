@@ -1,5 +1,7 @@
+import os
+
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 TEMPLATES_DIR = PROJECT_ROOT / "templates"
-METAMODEL_API_DIR = PROJECT_ROOT / "src" / "metamodel" / "api"
+CONFIG_PATH = Path(os.environ.get("APP_CONFIG_PATH", "src/api_config.json"))

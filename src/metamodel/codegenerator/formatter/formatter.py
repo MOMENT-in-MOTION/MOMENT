@@ -26,6 +26,9 @@ class Formatter(Visitor, ABC):
         """Convert the class name to PascalCase and format all its fields."""
         class_descriptor.class_name = to_pascal_case(class_descriptor.class_name)
         
+        if class_descriptor.inherits:
+            class_descriptor.inherits = [to_pascal_case(cls) for cls in class_descriptor.inherits]
+        
         for field in class_descriptor.fields:
             if field.base_type not in self.ignored_types:
                 field.base_type = to_pascal_case(field.base_type)

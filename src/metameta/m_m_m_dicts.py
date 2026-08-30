@@ -34,6 +34,7 @@ class MetaClassDict(TypedDict):
     name: str
     attributes: list[MetaAttributesDict]
     associations: list[MetaAssociationsDict]
+    inherits: NotRequired[list[str] | str]
 
 
 class MetaAttributesDict(ImportableDict):

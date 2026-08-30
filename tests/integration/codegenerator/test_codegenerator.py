@@ -109,7 +109,9 @@ class TestCodeGeneratorIntegration:
                 meta_model=meta_model_with_associations,
                 api_config=api_config,
                 formatter=formatter,
-                templates_dir=templates_dir
+                templates_dir=templates_dir,
+                output_path=Path(tmpdir),
+
             )
 
             assert isinstance(result, dict)
