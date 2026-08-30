@@ -1,0 +1,50 @@
+{
+    "name": "ImportedVarianceModel",
+    "enums": [
+        {
+            "name": "ImportedStatus",
+            "values": [
+                "READY",
+                "DONE"
+            ]
+        }
+    ],
+    "classes": [
+        {
+            "name": "ImportedThing",
+            "attributes": [
+                {
+                    "name": "Id",
+                    "attribute_type": "int",
+                    "multiplicity": "ONE",
+                    "default_value": 7
+                }
+            ],
+            "associations": [
+                {
+                    "name": "ImportedChild",
+                    "multiplicity": "AT_LEAST_ONE",
+                    "association_type": "COMPOSITION",
+                    "target": "ImportedChild"
+                },
+                {
+                    "name": "ImportedStatusRef",
+                    "multiplicity": "ZERO_OR_ONE",
+                    "association_type": "REFERENCE",
+                    "target": "ImportedStatus"
+                }
+            ]
+        },
+        {
+            "name": "ImportedChild",
+            "attributes": [
+                {
+                    "name": "Value",
+                    "attribute_type": "str",
+                    "multiplicity": "ONE"
+                }
+            ],
+            "associations": []
+        }
+    ]
+}

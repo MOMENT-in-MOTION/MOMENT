@@ -1,0 +1,135 @@
+{
+    "name": "VarianceBaseModel",
+    "enums": [
+        {
+            "name": "Status",
+            "values": [
+                "ACTIVE",
+                "INACTIVE"
+            ]
+        },
+        {
+            "name": "Color",
+            "values": [
+                {
+                    "name": "RED",
+                    "value": "red"
+                },
+                {
+                    "name": "BLUE",
+                    "value": "blue"
+                }
+            ]
+        }
+    ],
+    "classes": [
+        {
+            "name": "RootEntity",
+            "attributes": [
+                {
+                    "name": "Name",
+                    "attribute_type": "str",
+                    "multiplicity": "ONE",
+                    "default_value": "root"
+                },
+                {
+                    "name": "Count",
+                    "attribute_type": "int",
+                    "multiplicity": "ONE",
+                    "default_value": 3
+                },
+                {
+                    "name": "Enabled",
+                    "attribute_type": "bool",
+                    "multiplicity": "OPTIONAL",
+                    "default_value": "True"
+                }
+            ],
+            "associations": [
+                {
+                    "name": "SingleChild",
+                    "multiplicity": "ONE",
+                    "association_type": "COMPOSITION",
+                    "target": "SingleChild"
+                },
+                {
+                    "name": "ManyChildren",
+                    "multiplicity": "AT_LEAST_ONE",
+                    "association_type": "COMPOSITION",
+                    "target": "ManyChildren"
+                },
+                {
+                    "name": "OptionalReference",
+                    "multiplicity": "OPTIONAL",
+                    "association_type": "REFERENCE",
+                    "target": "OptionalReference"
+                },
+                {
+                    "name": "AnyReference",
+                    "multiplicity": "ANY",
+                    "association_type": "REFERENCE",
+                    "target": "AnyReference"
+                },
+                {
+                    "name": "ZeroOrOneStatus",
+                    "multiplicity": "ZERO_OR_ONE",
+                    "association_type": "REFERENCE",
+                    "target": "Status",
+                    "default_value": "ACTIVE"
+                },
+                {
+                    "name": "ImportedThing",
+                    "multiplicity": "ONE",
+                    "association_type": "COMPOSITION",
+                    "target": "ImportedThing",
+                    "import_link": "tests/unit/snapshots/test_jsons/snsh_variance_imported.json"
+                }
+            ]
+        },
+        {
+            "name": "SingleChild",
+            "attributes": [
+                {
+                    "name": "Label",
+                    "attribute_type": "str",
+                    "multiplicity": "ONE"
+                }
+            ],
+            "associations": []
+        },
+        {
+            "name": "ManyChildren",
+            "attributes": [
+                {
+                    "name": "Index",
+                    "attribute_type": "int",
+                    "multiplicity": "ONE",
+                    "default_value": 1
+                }
+            ],
+            "associations": []
+        },
+        {
+            "name": "OptionalReference",
+            "attributes": [
+                {
+                    "name": "Key",
+                    "attribute_type": "str",
+                    "multiplicity": "ONE"
+                }
+            ],
+            "associations": []
+        },
+        {
+            "name": "AnyReference",
+            "attributes": [
+                {
+                    "name": "Meta",
+                    "attribute_type": "str",
+                    "multiplicity": "ONE"
+                }
+            ],
+            "associations": []
+        }
+    ]
+}

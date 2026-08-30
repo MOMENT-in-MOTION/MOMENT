@@ -1,0 +1,63 @@
+{
+    "name": "InheritanceVarianceModel",
+    "classes": [
+        {
+            "name": "BaseNode",
+            "attributes": [
+                {
+                    "name": "Name",
+                    "attribute_type": "str",
+                    "multiplicity": "ONE"
+                }
+            ],
+            "associations": []
+        },
+        {
+            "name": "ChildNode",
+            "inherits": "BaseNode",
+            "attributes": [
+                {
+                    "name": "Rank",
+                    "attribute_type": "int",
+                    "multiplicity": "ONE",
+                    "default_value": 1
+                }
+            ],
+            "associations": [
+                {
+                    "name": "Parent",
+                    "multiplicity": "ONE",
+                    "association_type": "REFERENCE",
+                    "target": "BaseNode"
+                }
+            ]
+        },
+        {
+            "name": "InterfaceNode",
+            "attributes": [
+                {
+                    "name": "Visible",
+                    "attribute_type": "bool",
+                    "multiplicity": "ONE",
+                    "default_value": "False"
+                }
+            ],
+            "associations": []
+        },
+        {
+            "name": "MultiInheritedNode",
+            "inherits": [
+                "ChildNode",
+                "InterfaceNode"
+            ],
+            "attributes": [
+                {
+                    "name": "Weight",
+                    "attribute_type": "int",
+                    "multiplicity": "OPTIONAL"
+                }
+            ],
+            "associations": []
+        }
+    ]
+}

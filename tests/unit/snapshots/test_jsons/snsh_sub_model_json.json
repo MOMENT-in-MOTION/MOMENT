@@ -1,0 +1,36 @@
+{
+    "name": "imported_model",
+    "enums": [],
+    "classes": [
+        {
+            "name": "imported_root",
+            "attributes": [
+                {
+                    "name": "Name",
+                    "attribute_type": "STRING",
+                    "multiplicity": "ONE",
+                    "default_value": "root"
+                }
+            ],
+            "associations": [
+                {
+                    "name": "Imported_MetaClassDummy_1",
+                    "multiplicity": "ONE",
+                    "association_type": "COMPOSITION",
+                    "target": "Imported_MetaClassDummy_1"
+                }
+            ]
+        },
+        {
+            "name": "Imported_MetaClassDummy_1",
+            "attributes": [
+                {
+                    "name": "Name",
+                    "attribute_type": "STRING",
+                    "multiplicity": "ONE"
+                }
+            ],
+            "associations": []
+        }
+    ]
+}

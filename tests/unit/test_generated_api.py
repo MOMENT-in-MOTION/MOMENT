@@ -12,8 +12,10 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.metamodel.codegenerator.codegenerator import generate_meta_model_api
 from src.metamodel.codegenerator.formatter import get_formatter
-from src.metamodel.merger import merge_meta_models
+from src.metamodel.merger import UnreachableClassError, merge_meta_models
 from src.metamodel.parser.meta_model_parser import parse_meta_model
+from src.shared.load_json_as_dict import load_json_as_dict
+from src.shared.structure import structure_data
 from src.metameta.m_m_m_classes import (
     Association,
     AssociationOptions,
@@ -26,7 +28,6 @@ from src.metameta.m_m_m_classes import (
     TypeOptions,
 )
 
-
 DEFAULT_CONFIG = {
     "GenerateGetters": "true",
     "GenerateSetters": "true",
@@ -35,7 +36,21 @@ DEFAULT_CONFIG = {
     "UseDoubleUnderscore": "false",
     "ExplicitTypeSafety": "true",
     "NamingConvention": "snake_case",
+    "AllowUnreachableClasses": "false",
+    "RelativeImports": "true",
+    "Inheritance": "native",
 }
+
+
+def generate_api_code(meta_model, api_config, formatter, tmp_path):
+    """Generate API code using the current generator signature."""
+    return generate_meta_model_api(
+        meta_model=meta_model,
+        api_config=api_config,
+        formatter=formatter,
+        templates_dir=TEMPLATES_DIR,
+        output_path=tmp_path,
+    )
 
 
 @pytest.fixture
@@ -94,12 +109,7 @@ def formatter(default_config):
 @pytest.fixture
 def generated_code(simple_model, default_config, formatter, tmp_path):
     """Generate a class code string for the simplest valid model."""
-    result = generate_meta_model_api(
-        meta_model=simple_model,
-        api_config=default_config,
-        formatter=formatter,
-        templates_dir=TEMPLATES_DIR,
-    )
+    result = generate_api_code(simple_model, default_config, formatter, tmp_path)
     return result["class_code"]
 
 
@@ -109,15 +119,10 @@ class TestCodeGeneration:
     def test_generate_meta_model_api_returns_expected_structure(
         self, simple_model, default_config, formatter, tmp_path
     ):
-        result = generate_meta_model_api(
-            meta_model=simple_model,
-            api_config=default_config,
-            formatter=formatter,
-            templates_dir=TEMPLATES_DIR,
-        )
+        result = generate_api_code(simple_model, default_config, formatter, tmp_path)
 
         assert isinstance(result, dict)
-        assert set(result) == {"class_code", "enum_code"}
+        assert {"class_code", "enum_code"}.issubset(set(result))
         assert isinstance(result["class_code"], str)
         assert isinstance(result["enum_code"], str)
         assert "class Person" in result["class_code"]
@@ -130,7 +135,7 @@ class TestCodeGeneration:
             ("false", []),
         ],
     )
-    def test_generate_getters_and_setters(
+    def test_generate_getters(
         self,
         simple_model,
         default_config,
@@ -139,29 +144,119 @@ class TestCodeGeneration:
         tmp_path,
     ):
         default_config["GenerateGetters"] = getter_enabled
-        default_config["GenerateSetters"] = getter_enabled
 
         formatter = get_formatter(default_config["NamingConvention"])
-        result = generate_meta_model_api(
-            meta_model=simple_model,
-            api_config=default_config,
-            formatter=formatter,
-            templates_dir=TEMPLATES_DIR,
-        )
+        result = generate_api_code(simple_model, default_config, formatter, tmp_path)
         code = result["class_code"]
 
         for getter_name in ("get_name", "get_age"):
             assert (getter_name in code) is (getter_name in expected_names)
 
-        for setter_name in ("set_name", "set_age"):
-            assert (setter_name in code) is (getter_name in expected_names if getter_name in ("get_name", "get_age") else False)
+    @pytest.mark.parametrize(
+        "setter_enabled,expected_names",
+        [
+            ("true", ["set_name", "set_age"]),
+            ("false", []),
+        ],
+    )
+    def test_generate_setters(
+        self,
+        simple_model,
+        default_config,
+        setter_enabled,
+        expected_names,
+        tmp_path,
+    ):
+        default_config["GenerateSetters"] = setter_enabled
 
-        # NOTE: The project currently does not distinguish getter/setter generation separately,
-        # so this test keeps the business rule explicit and is meant to be reviewed if the
-        # generator eventually separates getter and setter toggles.
+        formatter = get_formatter(default_config["NamingConvention"])
+        result = generate_api_code(simple_model, default_config, formatter, tmp_path)
+        code = result["class_code"]
+
+        for setter_name in ("set_name", "set_age"):
+            assert (setter_name in code) is (setter_name in expected_names)
 
     @pytest.mark.parametrize(
-        "naming,field_name,expected", [
+        "setter_enabled,getter_enabled,expected_names",
+        [
+            ("true", "true", ["set_name", "set_age", "get_name", "get_age"]),
+            ("true", "false", ["set_name", "set_age"]),
+            ("false", "true", ["get_name", "get_age"]),
+            ("false", "false", []),
+        ],
+    )
+    def test_getters_and_setters_can_be_independently_disabled(
+        self,
+        simple_model,
+        default_config,
+        setter_enabled,
+        getter_enabled,
+        expected_names,
+        tmp_path,
+    ):
+        default_config["GenerateSetters"] = setter_enabled
+        default_config["GenerateGetters"] = getter_enabled
+
+        formatter = get_formatter(default_config["NamingConvention"])
+        result = generate_api_code(simple_model, default_config, formatter, tmp_path)
+        code = result["class_code"]
+
+        for name in ("set_name", "set_age", "get_name", "get_age"):
+            assert (name in code) is (name in expected_names)
+
+    @pytest.mark.parametrize(
+        "relative_imports_enabled,expected_import_statement",
+        [
+            ("true", "from .enum_code import *"),
+            ("false", "from enum_code import *"),
+        ],
+    )
+    def test_relative_imports(
+        self,
+        simple_model,
+        default_config,
+        relative_imports_enabled,
+        expected_import_statement,
+        tmp_path,
+    ):
+        default_config["RelativeImports"] = relative_imports_enabled
+
+        formatter = get_formatter(default_config["NamingConvention"])
+        result = generate_api_code(simple_model, default_config, formatter, tmp_path)
+        code = result["class_code"]
+
+        assert expected_import_statement in code
+
+    def test_allow_unreachable_classes_setting(self):
+        metamodel_path = (
+            PROJECT_ROOT
+            / "tests"
+            / "unit"
+            / "snapshots"
+            / "test_jsons"
+            / "snsh_merge_json.json"
+        )
+        meta_model_dict = structure_data(load_json_as_dict(metamodel_path))
+        meta_model = parse_meta_model(meta_model_dict=meta_model_dict)
+
+        with pytest.raises(UnreachableClassError):
+            merge_meta_models(
+                meta_model, metamodel_path, allow_unreachable_classes=False
+            )
+
+        meta_model = parse_meta_model(meta_model_dict=meta_model_dict)
+        merged_model = merge_meta_models(
+            meta_model,
+            metamodel_path,
+            allow_unreachable_classes=True,
+        )
+
+        assert merged_model is meta_model
+        assert any(cls.name == "MetaModelDummy" for cls in merged_model.classes)
+
+    @pytest.mark.parametrize(
+        "naming,field_name,expected",
+        [
             ("snake_case", "firstName", "first_name"),
             ("camelCase", "first_name", "firstName"),
         ],
@@ -187,19 +282,10 @@ class TestCodeGeneration:
             )
         )
 
-        result = generate_meta_model_api(
-            meta_model=simple_model,
-            api_config=default_config,
-            formatter=formatter,
-            templates_dir=TEMPLATES_DIR,
-        )
+        result = generate_api_code(simple_model, default_config, formatter, tmp_path)
         code = result["class_code"]
 
-        assert expected in code or expected.replace("_", "") in code
-
-        # TODO: add a stricter assertion once the exact naming transformation contract is
-        # finalized for each supported naming style. This is intentionally tolerant because
-        # the project does not currently expose a dedicated formatter validation helper.
+        assert expected in code
 
     def test_unknown_format_style_raises_value_error(self):
         with pytest.raises(ValueError, match="PascalCase"):
@@ -222,50 +308,41 @@ class TestCodeGeneration:
 class TestPrivacy:
     """Privacy checks for generated fields and setters."""
 
-    def test_strict_privacy_enabled_uses_private_fields(self, simple_model, default_config, tmp_path):
+    def test_strict_privacy_enabled_uses_private_fields(
+        self, simple_model, default_config, tmp_path
+    ):
         default_config["StrictPrivacy"] = "true"
         default_config["UseDoubleUnderscore"] = "false"
 
         formatter = get_formatter(default_config["NamingConvention"])
-        result = generate_meta_model_api(
-            meta_model=simple_model,
-            api_config=default_config,
-            formatter=formatter,
-            templates_dir=TEMPLATES_DIR,
-        )
+        result = generate_api_code(simple_model, default_config, formatter, tmp_path)
         code = result["class_code"]
 
         assert "_name: str" in code
         assert "_age: int" in code
         assert "self._name = name" in code
 
-    def test_double_underscore_privacy_variant(self, simple_model, default_config, tmp_path):
+    def test_double_underscore_privacy_variant(
+        self, simple_model, default_config, tmp_path
+    ):
         default_config["StrictPrivacy"] = "true"
         default_config["UseDoubleUnderscore"] = "true"
 
         formatter = get_formatter(default_config["NamingConvention"])
-        result = generate_meta_model_api(
-            meta_model=simple_model,
-            api_config=default_config,
-            formatter=formatter,
-            templates_dir=TEMPLATES_DIR,
-        )
+        result = generate_api_code(simple_model, default_config, formatter, tmp_path)
         code = result["class_code"]
 
         assert "__name: str" in code
         assert "self.__name = name" in code
 
-    def test_without_strict_privacy_fields_are_public(self, simple_model, default_config, tmp_path):
+    def test_without_strict_privacy_fields_are_public(
+        self, simple_model, default_config, tmp_path
+    ):
         default_config["StrictPrivacy"] = "false"
         default_config["UseDoubleUnderscore"] = "false"
 
         formatter = get_formatter(default_config["NamingConvention"])
-        result = generate_meta_model_api(
-            meta_model=simple_model,
-            api_config=default_config,
-            formatter=formatter,
-            templates_dir=TEMPLATES_DIR,
-        )
+        result = generate_api_code(simple_model, default_config, formatter, tmp_path)
         code = result["class_code"]
 
         assert "name: str" in code
@@ -279,12 +356,7 @@ class TestConstructor:
     def test_constructor_generated(self, simple_model, default_config, tmp_path):
         default_config["GenerateConstructors"] = "true"
         formatter = get_formatter(default_config["NamingConvention"])
-        result = generate_meta_model_api(
-            meta_model=simple_model,
-            api_config=default_config,
-            formatter=formatter,
-            templates_dir=TEMPLATES_DIR,
-        )
+        result = generate_api_code(simple_model, default_config, formatter, tmp_path)
         code = result["class_code"]
 
         assert "def __init__(" in code
@@ -293,12 +365,7 @@ class TestConstructor:
     def test_constructor_disabled(self, simple_model, default_config, tmp_path):
         default_config["GenerateConstructors"] = "false"
         formatter = get_formatter(default_config["NamingConvention"])
-        result = generate_meta_model_api(
-            meta_model=simple_model,
-            api_config=default_config,
-            formatter=formatter,
-            templates_dir=TEMPLATES_DIR,
-        )
+        result = generate_api_code(simple_model, default_config, formatter, tmp_path)
         code = result["class_code"]
 
         assert "def __init__(" not in code
@@ -310,12 +377,7 @@ class TestSetter:
     def test_setter_exists(self, simple_model, default_config, tmp_path):
         default_config["GenerateSetters"] = "true"
         formatter = get_formatter(default_config["NamingConvention"])
-        result = generate_meta_model_api(
-            meta_model=simple_model,
-            api_config=default_config,
-            formatter=formatter,
-            templates_dir=TEMPLATES_DIR,
-        )
+        result = generate_api_code(simple_model, default_config, formatter, tmp_path)
         code = result["class_code"]
 
         assert "def set_name" in code
@@ -324,26 +386,18 @@ class TestSetter:
     def test_setter_not_generated(self, simple_model, default_config, tmp_path):
         default_config["GenerateSetters"] = "false"
         formatter = get_formatter(default_config["NamingConvention"])
-        result = generate_meta_model_api(
-            meta_model=simple_model,
-            api_config=default_config,
-            formatter=formatter,
-            templates_dir=TEMPLATES_DIR,
-        )
+        result = generate_api_code(simple_model, default_config, formatter, tmp_path)
         code = result["class_code"]
 
         assert "def set_name" not in code
         assert "def set_age" not in code
 
-    def test_explicit_type_safety_is_rendered(self, simple_model, default_config, tmp_path):
+    def test_explicit_type_safety_is_rendered(
+        self, simple_model, default_config, tmp_path
+    ):
         default_config["ExplicitTypeSafety"] = "true"
         formatter = get_formatter(default_config["NamingConvention"])
-        result = generate_meta_model_api(
-            meta_model=simple_model,
-            api_config=default_config,
-            formatter=formatter,
-            templates_dir=TEMPLATES_DIR,
-        )
+        result = generate_api_code(simple_model, default_config, formatter, tmp_path)
         code = result["class_code"]
 
         assert "TypeError" in code
@@ -355,26 +409,18 @@ class TestAssociations:
 
     def test_reference_generation(self, simple_model, default_config, tmp_path):
         formatter = get_formatter(default_config["NamingConvention"])
-        result = generate_meta_model_api(
-            meta_model=simple_model,
-            api_config=default_config,
-            formatter=formatter,
-            templates_dir=TEMPLATES_DIR,
-        )
+        result = generate_api_code(simple_model, default_config, formatter, tmp_path)
         code = result["class_code"]
 
         assert "status: Status" in code
         assert "association_kind" not in code or "reference" in code
 
-    def test_association_field_uses_target_name_as_type(self, simple_model, default_config, tmp_path):
+    def test_association_field_uses_target_name_as_type(
+        self, simple_model, default_config, tmp_path
+    ):
         """This is the stable contract: association targets become type hints."""
         formatter = get_formatter(default_config["NamingConvention"])
-        result = generate_meta_model_api(
-            meta_model=simple_model,
-            api_config=default_config,
-            formatter=formatter,
-            templates_dir=TEMPLATES_DIR,
-        )
+        result = generate_api_code(simple_model, default_config, formatter, tmp_path)
         code = result["class_code"]
 
         assert "Status" in code
@@ -386,46 +432,61 @@ class TestEnums:
 
     def test_enum_generation(self, simple_model, default_config, tmp_path):
         formatter = get_formatter(default_config["NamingConvention"])
-        result = generate_meta_model_api(
-            meta_model=simple_model,
-            api_config=default_config,
-            formatter=formatter,
-            templates_dir=TEMPLATES_DIR,
-        )
+        result = generate_api_code(simple_model, default_config, formatter, tmp_path)
         code = result["enum_code"]
 
         assert "class Status(Enum):" in code
-        assert "ACTIVE = \"ACTIVE\"" in code
-        assert "INACTIVE = \"INACTIVE\"" in code
+        assert 'ACTIVE = "ACTIVE"' in code
+        assert 'INACTIVE = "INACTIVE"' in code
 
 
 class TestSnapshots:
-    """Snapshot checks for merged models. These are intentionally partial until the real fixtures exist."""
+    """Snapshot checks for generated code from the supported JSON variants."""
 
-    @pytest.mark.xfail(reason="TODO: add the real merged model JSON and snapshot output for this project.")
-    def test_complete_merged_model_snapshot(self, simple_model, default_config, tmp_path):
-        """This is a placeholder for a real merged-model snapshot test."""
-        # TODO: replace this with the real JSON fixture path once the merged-model example is ready.
-        metamodel_dir = PROJECT_ROOT / "tests" / "codegenerator" / "snapshots" / "test_jsons" / "snsh_merge_json.json"
+    @pytest.mark.parametrize(
+        "json_name",
+        [
+            "snsh_merge_json.json",
+            "snsh_variance_base.json",
+            "snsh_variance_imported.json",
+            "snsh_variance_inheritance.json",
+        ],
+    )
+    def test_complete_model_snapshot(self, default_config, tmp_path, json_name):
+        metamodel_path = (
+            PROJECT_ROOT / "tests" / "unit" / "snapshots" / "test_jsons" / json_name
+        )
+        assert metamodel_path.exists(), f"Missing snapshot input: {metamodel_path}"
 
-        try:
-            meta_model_dict = merge_meta_models(path=metamodel_dir, config=default_config)
-        except (FileNotFoundError, TypeError, ValueError):
-            # NOTE: unsure whether this function requires a dict, a file path, or extra config.
-            pytest.xfail("merge_meta_models input contract is not yet fully specified for this repository.")
-
+        meta_model_dict = structure_data(load_json_as_dict(metamodel_path))
         meta_model = parse_meta_model(meta_model_dict=meta_model_dict)
-        assert meta_model is not None
 
-        generated = generate_meta_model_api(
-            meta_model=simple_model,
-            api_config=default_config,
-            formatter=get_formatter(default_config["NamingConvention"]),
-            templates_dir=TEMPLATES_DIR,
+        if json_name == "snsh_merge_json.json":
+            merge_meta_models(
+                meta_model, metamodel_path, allow_unreachable_classes=True
+            )
+
+        generated = generate_api_code(
+            meta_model,
+            default_config,
+            get_formatter(default_config["NamingConvention"]),
+            tmp_path,
         )
 
-        # TODO: add the expected snapshot file and compare the generated code with it.
-        # This is intentionally left incomplete because the repository does not yet contain a
-        # finalized example snapshot for this generator output.
-        assert isinstance(generated["class_code"], str)
+        class_snapshot = (
+            PROJECT_ROOT
+            / "tests"
+            / "unit"
+            / "snapshots"
+            / f"{metamodel_path.stem}_class_code.py"
+        ).read_text(encoding="utf-8")
+        enum_snapshot = (
+            PROJECT_ROOT
+            / "tests"
+            / "unit"
+            / "snapshots"
+            / f"{metamodel_path.stem}_enum_code.py"
+        ).read_text(encoding="utf-8")
 
+        assert generated["class_code"] == class_snapshot
+        assert generated["enum_code"] == enum_snapshot

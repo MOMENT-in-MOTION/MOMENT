@@ -35,10 +35,10 @@
 					"default_value": "root"
 				}
 			],
-			"associations":[
-                {
+			"associations": [
+				{
 					"name": "Class_Imported_1",
-                    "import_link": "C:\Users\Lerts\Desktop\Projekte\Projekt-Moment\MOMENT\tests\codegenerator\snapshots\test_jsons\test_sub_model_json.json",
+					"import_link": "tests/unit/snapshots/test_jsons/snsh_sub_model_json.json",
 					"multiplicity": "ONE",
 					"association_type": "COMPOSITION",
 					"target": "Imported_MetaClassDummy_1"
@@ -113,7 +113,7 @@
 					"default_value": "False"
 				}
 			],
-			"associations":[
+			"associations": [
 				{
 					"name": "Class_MetaCompositionDummy_1",
 					"multiplicity": "ONE",
@@ -152,10 +152,13 @@
 					"name": "TestBool",
 					"attribute_type": "BOOL",
 					"multiplicity": "AT_LEAST_ONE",
-					"default_value": ["True","False"]
+					"default_value": [
+						"True",
+						"False"
+					]
 				}
 			],
-			"associations":[
+			"associations": [
 				{
 					"name": "Class_MetaCompositionDummies_1",
 					"multiplicity": "ANY",
@@ -191,7 +194,10 @@
 					"target": "Example_Enum_1",
 					"association_type": "REFERENCE",
 					"multiplicity": "AT_LEAST_ONE",
-					"default_value": ["VALUE_1", "VALUE_2"]
+					"default_value": [
+						"VALUE_1",
+						"VALUE_2"
+					]
 				}
 			]
 		},
