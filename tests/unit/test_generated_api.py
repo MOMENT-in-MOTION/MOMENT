@@ -56,6 +56,7 @@ def generate_api_code(meta_model, api_config, formatter, tmp_path):
 @pytest.fixture
 def simple_model():
     """Simple MetaModel fixture for testing."""
+    # pylint: disable=duplicate-code
     meta_enum = MetaEnum(
         name="Status",
         values=[
@@ -136,7 +137,6 @@ class TestCodeGeneration:
             ("false", []),
         ],
     )
-    # pylint: disable=too-many-positional-arguments
     def test_generate_getters(
         self,
         simple_model,
@@ -162,7 +162,6 @@ class TestCodeGeneration:
             ("false", []),
         ],
     )
-    # pylint: disable=too-many-positional-arguments
     def test_generate_setters(
         self,
         simple_model,
@@ -190,7 +189,6 @@ class TestCodeGeneration:
             ("false", "false", []),
         ],
     )
-    # pylint: disable=too-many-positional-arguments
     def test_getters_and_setters_can_be_independently_disabled(
         self,
         simple_model,
@@ -218,7 +216,6 @@ class TestCodeGeneration:
             ("false", "from enum_code import *"),
         ],
     )
-    # pylint: disable=too-many-positional-arguments
     def test_relative_imports(
         self,
         simple_model,
@@ -271,7 +268,6 @@ class TestCodeGeneration:
             ("camelCase", "first_name", "firstName"),
         ],
     )
-    # pylint: disable=too-many-positional-arguments
     def test_naming_convention_formatting(
         self,
         simple_model,
@@ -475,7 +471,6 @@ class TestSnapshots:
             "snsh_variance_inheritance.json",
         ],
     )
-    # pylint: disable=too-many-positional-arguments
     def test_complete_model_snapshot(self, default_config, tmp_path, json_name):
         """Verify generated code matches expected snapshots for various model types."""
         metamodel_path = (
