@@ -5,11 +5,6 @@ from pathlib import Path
 
 import pytest
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-TEMPLATES_DIR = PROJECT_ROOT / "templates"
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
 from src.metamodel.codegenerator.codegenerator import generate_meta_model_api
 from src.metamodel.codegenerator.formatter import get_formatter
 from src.metamodel.merger import UnreachableClassError, merge_meta_models
@@ -27,6 +22,11 @@ from src.metameta.m_m_m_classes import (
     MultiplicityOptions,
     TypeOptions,
 )
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+TEMPLATES_DIR = PROJECT_ROOT / "templates"
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 DEFAULT_CONFIG = {
     "GenerateGetters": "true",
@@ -136,6 +136,7 @@ class TestCodeGeneration:
             ("false", []),
         ],
     )
+    # pylint: disable=too-many-positional-arguments
     def test_generate_getters(
         self,
         simple_model,
@@ -161,6 +162,7 @@ class TestCodeGeneration:
             ("false", []),
         ],
     )
+    # pylint: disable=too-many-positional-arguments
     def test_generate_setters(
         self,
         simple_model,
@@ -188,6 +190,7 @@ class TestCodeGeneration:
             ("false", "false", []),
         ],
     )
+    # pylint: disable=too-many-positional-arguments
     def test_getters_and_setters_can_be_independently_disabled(
         self,
         simple_model,
@@ -215,6 +218,7 @@ class TestCodeGeneration:
             ("false", "from enum_code import *"),
         ],
     )
+    # pylint: disable=too-many-positional-arguments
     def test_relative_imports(
         self,
         simple_model,
@@ -267,6 +271,7 @@ class TestCodeGeneration:
             ("camelCase", "first_name", "firstName"),
         ],
     )
+    # pylint: disable=too-many-positional-arguments
     def test_naming_convention_formatting(
         self,
         simple_model,
@@ -470,6 +475,7 @@ class TestSnapshots:
             "snsh_variance_inheritance.json",
         ],
     )
+    # pylint: disable=too-many-positional-arguments
     def test_complete_model_snapshot(self, default_config, tmp_path, json_name):
         """Verify generated code matches expected snapshots for various model types."""
         metamodel_path = (
