@@ -119,6 +119,7 @@ class TestCodeGeneration:
     def test_generate_meta_model_api_returns_expected_structure(
         self, simple_model, default_config, formatter, tmp_path
     ):
+        """Verify generated API code returns dict with class_code and enum_code keys."""
         result = generate_api_code(simple_model, default_config, formatter, tmp_path)
 
         assert isinstance(result, dict)
@@ -143,6 +144,7 @@ class TestCodeGeneration:
         expected_names,
         tmp_path,
     ):
+        """Verify getter methods are generated only when enabled."""
         default_config["GenerateGetters"] = getter_enabled
 
         formatter = get_formatter(default_config["NamingConvention"])
@@ -167,6 +169,7 @@ class TestCodeGeneration:
         expected_names,
         tmp_path,
     ):
+        """Verify setter methods are generated only when enabled."""
         default_config["GenerateSetters"] = setter_enabled
 
         formatter = get_formatter(default_config["NamingConvention"])
@@ -194,6 +197,7 @@ class TestCodeGeneration:
         expected_names,
         tmp_path,
     ):
+        """Verify getter and setter generation can be toggled independently."""
         default_config["GenerateSetters"] = setter_enabled
         default_config["GenerateGetters"] = getter_enabled
 
@@ -219,6 +223,7 @@ class TestCodeGeneration:
         expected_import_statement,
         tmp_path,
     ):
+        """Verify import statements use relative or absolute paths based on config."""
         default_config["RelativeImports"] = relative_imports_enabled
 
         formatter = get_formatter(default_config["NamingConvention"])
@@ -228,6 +233,7 @@ class TestCodeGeneration:
         assert expected_import_statement in code
 
     def test_allow_unreachable_classes_setting(self):
+        """Verify unreachable classes are handled correctly based on settings."""
         metamodel_path = (
             PROJECT_ROOT
             / "tests"
@@ -270,6 +276,7 @@ class TestCodeGeneration:
         expected,
         tmp_path,
     ):
+        """Verify field names are formatted according to naming convention."""
         default_config["NamingConvention"] = naming
         formatter = get_formatter(naming)
 
@@ -288,6 +295,7 @@ class TestCodeGeneration:
         assert expected in code
 
     def test_unknown_format_style_raises_value_error(self):
+        """Verify ValueError is raised for unsupported naming conventions."""
         with pytest.raises(ValueError, match="PascalCase"):
             get_formatter("PascalCase")
 
@@ -311,6 +319,7 @@ class TestPrivacy:
     def test_strict_privacy_enabled_uses_private_fields(
         self, simple_model, default_config, tmp_path
     ):
+        """Verify private fields with single underscore prefix when strict privacy enabled."""
         default_config["StrictPrivacy"] = "true"
         default_config["UseDoubleUnderscore"] = "false"
 
@@ -325,6 +334,7 @@ class TestPrivacy:
     def test_double_underscore_privacy_variant(
         self, simple_model, default_config, tmp_path
     ):
+        """Verify double underscore prefix for name mangling when option enabled."""
         default_config["StrictPrivacy"] = "true"
         default_config["UseDoubleUnderscore"] = "true"
 
@@ -338,6 +348,7 @@ class TestPrivacy:
     def test_without_strict_privacy_fields_are_public(
         self, simple_model, default_config, tmp_path
     ):
+        """Verify fields are public without privacy modifiers when strict privacy disabled."""
         default_config["StrictPrivacy"] = "false"
         default_config["UseDoubleUnderscore"] = "false"
 
@@ -354,6 +365,7 @@ class TestConstructor:
     """Constructor generation tests."""
 
     def test_constructor_generated(self, simple_model, default_config, tmp_path):
+        """Verify __init__ method is generated when constructor generation enabled."""
         default_config["GenerateConstructors"] = "true"
         formatter = get_formatter(default_config["NamingConvention"])
         result = generate_api_code(simple_model, default_config, formatter, tmp_path)
@@ -363,6 +375,7 @@ class TestConstructor:
         assert "self._name = name" in code
 
     def test_constructor_disabled(self, simple_model, default_config, tmp_path):
+        """Verify __init__ method is not generated when constructor generation disabled."""
         default_config["GenerateConstructors"] = "false"
         formatter = get_formatter(default_config["NamingConvention"])
         result = generate_api_code(simple_model, default_config, formatter, tmp_path)
@@ -375,6 +388,7 @@ class TestSetter:
     """Setter generation and safety checks."""
 
     def test_setter_exists(self, simple_model, default_config, tmp_path):
+        """Verify setter methods are present in generated code."""
         default_config["GenerateSetters"] = "true"
         formatter = get_formatter(default_config["NamingConvention"])
         result = generate_api_code(simple_model, default_config, formatter, tmp_path)
@@ -384,6 +398,7 @@ class TestSetter:
         assert "def set_age" in code
 
     def test_setter_not_generated(self, simple_model, default_config, tmp_path):
+        """Verify setter methods are not generated when disabled."""
         default_config["GenerateSetters"] = "false"
         formatter = get_formatter(default_config["NamingConvention"])
         result = generate_api_code(simple_model, default_config, formatter, tmp_path)
@@ -395,6 +410,7 @@ class TestSetter:
     def test_explicit_type_safety_is_rendered(
         self, simple_model, default_config, tmp_path
     ):
+        """Verify type checking with TypeError is included when explicit type safety enabled."""
         default_config["ExplicitTypeSafety"] = "true"
         formatter = get_formatter(default_config["NamingConvention"])
         result = generate_api_code(simple_model, default_config, formatter, tmp_path)
@@ -408,6 +424,7 @@ class TestAssociations:
     """Association and reference generation tests."""
 
     def test_reference_generation(self, simple_model, default_config, tmp_path):
+        """Verify reference associations are properly generated in code."""
         formatter = get_formatter(default_config["NamingConvention"])
         result = generate_api_code(simple_model, default_config, formatter, tmp_path)
         code = result["class_code"]
@@ -431,6 +448,7 @@ class TestEnums:
     """Enum generation tests."""
 
     def test_enum_generation(self, simple_model, default_config, tmp_path):
+        """Verify enum class with literals is generated correctly."""
         formatter = get_formatter(default_config["NamingConvention"])
         result = generate_api_code(simple_model, default_config, formatter, tmp_path)
         code = result["enum_code"]
@@ -453,6 +471,7 @@ class TestSnapshots:
         ],
     )
     def test_complete_model_snapshot(self, default_config, tmp_path, json_name):
+        """Verify generated code matches expected snapshots for various model types."""
         metamodel_path = (
             PROJECT_ROOT / "tests" / "unit" / "snapshots" / "test_jsons" / json_name
         )
