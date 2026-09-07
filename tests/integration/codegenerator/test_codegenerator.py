@@ -110,8 +110,6 @@ class TestCodeGeneratorIntegration:
                 api_config=api_config,
                 formatter=formatter,
                 templates_dir=templates_dir,
-                output_path=Path(tmpdir),
-
             )
 
             assert isinstance(result, dict)

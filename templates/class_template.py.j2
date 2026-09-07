@@ -106,6 +106,39 @@ class {{ cls.class_name }}:
     {% endif %}
 
     {% endfor %}
+
+    def to_dict(self) -> dict:
+        """Generated serialization method for {{ cls.class_name }}"""
+        result = {}
+        {% for f in cls.sorted_fields %}
+        {% set _attr = ("__" if api_config.UseDoubleUnderscore == "true" else "_" if api_config.StrictPrivacy == "true" else "") + f.field_name %}
+        {% set _key = f.field_name %}
+        {% if f.multiplicity.is_list %}
+        {% if f.multiplicity.is_optional %}
+        result["{{ _key }}"] = (
+            [v.to_dict() if hasattr(v, "to_dict") else (v.value if hasattr(v, "value") else v) for v in self.{{ _attr }}]
+            if self.{{ _attr }} is not None else None
+        )
+        {% else %}
+        result["{{ _key }}"] = (
+            [v.to_dict() if hasattr(v, "to_dict") else (v.value if hasattr(v, "value") else v) for v in self.{{ _attr }}]
+        )
+        {% endif %}
+        {% elif f.multiplicity.is_optional %}
+        result["{{ _key }}"] = (
+            self.{{ _attr }}.to_dict() if hasattr(self.{{ _attr }}, "to_dict")
+            else (self.{{ _attr }}.value if hasattr(self.{{ _attr }}, "value") else self.{{ _attr }})
+            if self.{{ _attr }} is not None else None
+        )
+        {% else %}
+        result["{{ _key }}"] = (
+            self.{{ _attr }}.to_dict() if hasattr(self.{{ _attr }}, "to_dict")
+            else (self.{{ _attr }}.value if hasattr(self.{{ _attr }}, "value") else self.{{ _attr }})
+        )
+        {% endif %}
+        {% endfor %}
+        return result
+
 {% if not loop.last %}
 {% endif %}
 {% endfor -%}

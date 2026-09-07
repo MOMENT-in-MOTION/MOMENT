@@ -28,7 +28,6 @@ The metamodel must be a `.json` file.
 
 | Option                        | Description                                                                 |
 |-------------------------------|-----------------------------------------------------------------------------|
-| `-s`, `--serialize <format>`  | Serialize the parsed metamodel to the given format (`json` or `xml`)        |
 | `-o`, `--output <path>`       | Output directory for generated files (default: `project-root/output/`)      |
 
 ### Examples
@@ -37,18 +36,6 @@ Generate Python API code from a metamodel:
 
 ```bash
 python -m src.main path/to/metamodel.json
-```
-
-Serialize the metamodel to JSON:
-
-```bash
-python -m src.main path/to/metamodel.json --serialize json
-```
-
-Serialize the metamodel to XML:
-
-```bash
-python -m src.main path/to/metamodel.json --serialize xml
 ```
 
 ## Testing
