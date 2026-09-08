@@ -5,7 +5,7 @@ from pathlib import Path
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Optional
 from enum import Enum
 
 # ---------------------------------------------------------------------------
@@ -13,31 +13,17 @@ from enum import Enum
 # ---------------------------------------------------------------------------
 
 
-class MultiplicityOptions(str, Enum):
-    """Multiplicity options for model elements."""
+class Multiplicity:  
+    lower: int  
+    upper: Optional[int] # None is *  
 
-    ONE = "ONE"
-    AT_LEAST_ONE = "AT_LEAST_ONE"
-    ANY = "ANY"
-    ZERO_OR_ONE = (
-        "ZERO_OR_ONE"  # Redundant with OPTIONAL, but may be useful for readability
-    )
-    OPTIONAL = "OPTIONAL"
-    RANGE = "RANGE"  # For attributes with a predefined Range of elements
-    VALUE = "VALUE"  # For attributes with a predefined set of elements
+    @property  
+    def is_list(self) -> bool:  
+        return self.upper is None or self.upper > 1  
 
-    @property
-    def is_list(self) -> bool:
-        return self in (MultiplicityOptions.AT_LEAST_ONE, MultiplicityOptions.ANY, MultiplicityOptions.RANGE, MultiplicityOptions.VALUE)
-
-    @property
-    def is_optional(self) -> bool:
-        return self in (
-            MultiplicityOptions.ANY,
-            MultiplicityOptions.ZERO_OR_ONE,
-            MultiplicityOptions.OPTIONAL
-        )
-
+    @property  
+    def is_optional(self) -> bool:  
+        return self.lower == 0 
 
 class AssociationOptions(str, Enum):
     """Association type options."""
@@ -190,8 +176,6 @@ class Attribute(MetaElement):
     attribute_type: MetaEnumLiteral
     default_value: Any | None = None
 
-    multiplicity_lower_bound: int | None = None
-    multiplicity_upper_bound: int | None = None
 
     def validate(self) -> None:
         """Validate the attribute.
@@ -216,14 +200,11 @@ class Association(MetaElement):
     """
 
     name: str
-    multiplicity: MultiplicityOptions
+    multiplicity: Multiplicity
     association_type: AssociationOptions
     association_target: MetaClass | MetaEnum
     import_link: Path | None = None
     default_value: Any | None = None
-    
-    multiplicity_lower_bound: int | None = None
-    multiplicity_upper_bound: int | None = None
 
     def validate(self) -> None:
         """Validate the association.
@@ -248,14 +229,12 @@ class OpenAssociation(MetaElement):
 
     # association_origin: MetaClass | None #TODO Vielleicht für zweiseitige Referenzen?
     name: str
-    multiplicity: MultiplicityOptions
+    multiplicity: Multiplicity
     association_type: AssociationOptions
     association_target_name: str
     import_link: Path | None = None
     default_value: Any | None = None
 
-    multiplicity_lower_bound: int | None = None
-    multiplicity_upper_bound: int | None = None
 
     def validate(self) -> None:
         """Validate the open association.
@@ -280,10 +259,7 @@ class OpenAssociation(MetaElement):
             multiplicity=self.multiplicity,
             association_type=self.association_type,
             association_target=final_target,
-            default_value=self.default_value,
-
-            multiplicity_lower_bound=self.multiplicity_lower_bound,
-            multiplicity_upper_bound=self.multiplicity_upper_bound,
+            default_value=self.default_value
         )
 
 
@@ -373,13 +349,18 @@ class MetaClass(MetaElement):
                 default = ""
                 if attr.default_value:
                     default = attr.default_value
-                if attr.multiplicity_lower_bound is not None and attr.multiplicity_upper_bound is not None:
-                    if attr.multiplicity_lower_bound == attr.multiplicity_upper_bound:
-                        multiplicity_name = attr.multiplicity_lower_bound
-                    else:
-                        multiplicity_name = f"{attr.multiplicity_lower_bound}..{attr.multiplicity_upper_bound}"
+                if attr.multiplicity.lower is None:
+                    multiplicity_name_lower = "*"
                 else:
-                    multiplicity_name = [attr.multiplicity.name]
+                    multiplicity_name_lower = attr.multiplicity.lower
+                if attr.multiplicity.upper is None:
+                    multiplicity_name_upper = "*"
+                else:
+                    multiplicity_name_upper = attr.multiplicity.upper
+                if multiplicity_name_lower == multiplicity_name_upper:
+                    multiplicity_name = multiplicity_name_lower
+                else:
+                    multiplicity_name = f"{multiplicity_name_lower}..{multiplicity_name_upper}"          
                 result += (
                     f"{pad}    - {attr.name}: \t\t"
                     f"{attr.attribute_type.name} "
@@ -391,13 +372,18 @@ class MetaClass(MetaElement):
             result += f"{pad}  Associations:\n"
             for assoc in self.associations:
 
-                if assoc.multiplicity_lower_bound is not None and assoc.multiplicity_upper_bound is not None:
-                    if assoc.multiplicity_lower_bound == assoc.multiplicity_upper_bound:
-                        multiplicity_name = assoc.multiplicity_lower_bound
-                    else:
-                        multiplicity_name = f"{assoc.multiplicity_lower_bound}..{assoc.multiplicity_upper_bound}"
+                if assoc.multiplicity.lower is None:
+                    multiplicity_name_lower = "*"
                 else:
-                    multiplicity_name = [assoc.multiplicity.name]
+                    multiplicity_name_lower = assoc.multiplicity.lower
+                if assoc.multiplicity.upper is None:
+                    multiplicity_name_upper = "*"
+                else:
+                    multiplicity_name_upper = assoc.multiplicity.upper
+                if multiplicity_name_lower == multiplicity_name_upper:
+                    multiplicity_name = multiplicity_name_lower
+                else:
+                    multiplicity_name = f"{multiplicity_name_lower}..{multiplicity_name_upper}"    
                 
                 if isinstance(assoc, OpenAssociation):
                     result += (

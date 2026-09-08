@@ -12,7 +12,7 @@ from ...metameta.m_m_m_classes import (
     Association,
     Attribute,
     OpenAssociation,
-    MultiplicityOptions,
+    Multiplicity,
     AssociationOptions,
     TypeOptions,
 )
@@ -192,9 +192,7 @@ def _build_attribute(attribute_values: MetaAttributesDict) -> Attribute:
     #if multiplicity is a range or a value, we parse it and set lower and upper bounds accordingly
     #Values are represented by equal lower and upper bounds.
     if "[" in attribute_values["multiplicity"] and "]" in attribute_values["multiplicity"]:
-            multiplicity_lower_bound = None
-            multiplicity_upper_bound = None
-            MultiplicityType = MultiplicityOptions.RANGE
+            futureMultiplicity = Multiplicity()
             if ".." in attribute_values["multiplicity"]:
                 bounds = attribute_values["multiplicity"].strip("[]").split("..")
                 if len(bounds) != 2:
@@ -202,34 +200,29 @@ def _build_attribute(attribute_values: MetaAttributesDict) -> Attribute:
                         f"Invalid multiplicity format: {attribute_values["multiplicity"]}"
                     )
                 try:
-                    multiplicity_lower_bound = int(bounds[0])
-                    multiplicity_upper_bound = int(bounds[1])
+
+                    futureMultiplicity.lower = int(bounds[0])
+                    if bounds[1].strip() == "*":
+                        futureMultiplicity.upper = None
+                    else: 
+                        futureMultiplicity.upper = int(bounds[1])
                 except ValueError as e:
                     raise ValueError(
                         f"Invalid multiplicity bounds: {attribute_values["multiplicity"]}"
                     ) from e
             elif attribute_values["multiplicity"].strip("[]").isdigit():
-                MultiplicityType = MultiplicityOptions.VALUE
-                multiplicity_lower_bound = int(attribute_values["multiplicity"].strip("[]"))
-                multiplicity_upper_bound = multiplicity_lower_bound
+                futureMultiplicity.lower = int(attribute_values["multiplicity"].strip("[]"))
+                futureMultiplicity.upper = futureMultiplicity.lower
             return Attribute(
                 name=attribute_values["name"],
                 attribute_type=attribute_type,
-                multiplicity=MultiplicityType,
-                default_value=attribute_values.get("default_value"),
-                multiplicity_lower_bound=multiplicity_lower_bound,
-                multiplicity_upper_bound=multiplicity_upper_bound
+                multiplicity=futureMultiplicity,
+                default_value=attribute_values.get("default_value")
             )
     else:
-        return Attribute(
-            name=attribute_values["name"],
-            attribute_type=attribute_type,
-            multiplicity=_test_enum_value(
-                MultiplicityOptions, attribute_values["multiplicity"]
-            ),
-            default_value=attribute_values.get("default_value"),
-            multiplicity_lower_bound=None,
-            multiplicity_upper_bound=None
+        raise ValueError(
+            f"Invalid multiplicity format: {attribute_values['multiplicity']}. "
+            "Expected a range in the format '[lower..upper]' or a single value in the format '[value]'."
         )
 
 
@@ -240,16 +233,14 @@ def _build_association(association_values: MetaAssociationsDict) -> OpenAssociat
         - association_values.keys()
     ):
         raise ValueError(
-            f"Missing required keys: {missing} in attribute definition: {association_values}"
+            f"Missing required keys: {missing} in association definition: {association_values}"
         )
     link_value = association_values.get("import_link")
 
     #if multiplicity is a range or a value, we parse it and set lower and upper bounds accordingly
     #Values are represented by equal lower and upper bounds.
     if "[" in association_values["multiplicity"] and "]" in association_values["multiplicity"]:
-            multiplicity_lower_bound = None
-            multiplicity_upper_bound = None
-            MultiplicityType = MultiplicityOptions.RANGE
+            futureMultiplicity = Multiplicity()
             if ".." in association_values["multiplicity"]:
                 bounds = association_values["multiplicity"].strip("[]").split("..")
                 if len(bounds) != 2:
@@ -257,41 +248,33 @@ def _build_association(association_values: MetaAssociationsDict) -> OpenAssociat
                         f"Invalid multiplicity format: {association_values["multiplicity"]}"
                     )
                 try:
-                    multiplicity_lower_bound = int(bounds[0])
-                    multiplicity_upper_bound = int(bounds[1])
+                    futureMultiplicity.lower = int(bounds[0])
+                    if bounds[1].strip() == "*":
+                        futureMultiplicity.upper = None
+                    else:
+                        futureMultiplicity.upper = int(bounds[1])
                 except ValueError as e:
                     raise ValueError(
                         f"Invalid multiplicity bounds: {association_values["multiplicity"]}"
                     ) from e
             elif association_values["multiplicity"].strip("[]").isdigit():
-                MultiplicityType = MultiplicityOptions.VALUE
-                multiplicity_lower_bound = int(association_values["multiplicity"].strip("[]"))
-                multiplicity_upper_bound = multiplicity_lower_bound
+                futureMultiplicity.lower = int(association_values["multiplicity"].strip("[]"))
+                futureMultiplicity.upper = futureMultiplicity.lower
             return OpenAssociation(
                 name=association_values["name"],
-                multiplicity=MultiplicityType,
+                multiplicity=futureMultiplicity,
                 association_type=_test_enum_value(
                     AssociationOptions, association_values["association_type"]
                 ),
                 association_target_name=association_values["target"],
                 default_value=association_values.get("default_value"),
-                import_link= Path(link_value) if link_value and isinstance(link_value, str) else None,
-                multiplicity_lower_bound=multiplicity_lower_bound,
-                multiplicity_upper_bound=multiplicity_upper_bound
+                import_link= Path(link_value) if link_value and isinstance(link_value, str) else None
             )
     else :
-        return OpenAssociation(
-            name=association_values["name"],
-            multiplicity=_test_enum_value(
-                MultiplicityOptions, association_values["multiplicity"]
-            ),
-            association_type=_test_enum_value(
-                AssociationOptions, association_values["association_type"]
-            ),
-            association_target_name=association_values["target"],
-            default_value=association_values.get("default_value"),
-            import_link= Path(link_value) if link_value and isinstance(link_value, str) else None
-        )
+        raise ValueError(
+                    f"Invalid multiplicity format: {association_values['multiplicity']}. "
+                    "Expected a range in the format '[lower..upper]' or a single value in the format '[value]'."
+                )
 
 
 def _test_enum_value(enum: E, value: str) -> E:

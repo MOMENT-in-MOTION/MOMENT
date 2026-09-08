@@ -12,7 +12,7 @@ from ...metameta.m_m_m_classes import (
     TypeOptions,
     Attribute,
     MetaModel,
-    MultiplicityOptions,
+    Multiplicity,
     OpenAssociation
 )
 
@@ -75,7 +75,7 @@ class FieldDescriptor(Descriptor):
     """
     field_name: str
     base_type: str
-    multiplicity: MultiplicityOptions
+    multiplicity: Multiplicity
     is_association: bool
     is_meta_enum: bool
     association_kind: str | None
@@ -98,8 +98,8 @@ class FieldDescriptor(Descriptor):
         """
         return cls(
             field_name=association.name,
-            base_type=association.association_target.name,
-            multiplicity=MultiplicityOptions(association.multiplicity or "ANY"),
+            base_type=association.association_target.name, 
+            multiplicity=association.multiplicity,
             default=association.default_value,
             is_meta_enum=isinstance(association.association_target, MetaEnum),
             is_association=True,
@@ -122,7 +122,7 @@ class FieldDescriptor(Descriptor):
         return cls(
             field_name=attribute.name,
             base_type=primitive_type,
-            multiplicity=MultiplicityOptions(attribute.multiplicity or "ANY"),
+            multiplicity=attribute.multiplicity,
             default=attribute.default_value,
             is_meta_enum=False,
             is_association=False,

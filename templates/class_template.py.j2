@@ -67,13 +67,13 @@ class {{ cls.class_name }}:
         """Generated constructor for {{ cls.class_name }}"""
         {% for f in cls.sorted_fields %}
         {% set _attr = ("__" if api_config.UseDoubleUnderscore == "true" else "_" if api_config.StrictPrivacy == "true" else "") + f.field_name %}
-        {% if f.multiplicity_lower_bound is not none and f.multiplicity_upper_bound is not none %}
-        self._{{f.field_name}}_multiplicity_lower_bound = {{f.multiplicity_lower_bound}}
-        self._{{f.field_name}}_multiplicity_upper_bound = {{f.multiplicity_upper_bound}}
-        if not (self._{{f.field_name}}_multiplicity_lower_bound <= len({{f.field_name}}) <= self._{{f.field_name}}_multiplicity_upper_bound):
-            raise ValueError(f"Field '{{_attr}}' must have between {{f.multiplicity_lower_bound}} and {{f.multiplicity_upper_bound}} elements, got {len({{f.field_name}})}")
+        {% if f.multiplicity.lower is not none and f.multiplicity.upper is not none %}
+        self._{{f.field_name}}.multiplicity.lower = {{f.multiplicity.lower}}
+        self._{{f.field_name}}.multiplicity.upper = {{f.multiplicity.upper}}
+        if not (self._{{f.field_name}}.multiplicity.lower <= len({{f.field_name}}) <= self._{{f.field_name}}.multiplicity.upper):
+            raise ValueError(f"Field '{{_attr}}' must have between {{f.multiplicity.lower}} and {{f.multiplicity.upper}} elements, got {len({{f.field_name}})}")
         {% endif %}
-        {% endif %}
+        
         self.{{_attr}} = {{f.field_name}}
         {% endfor %}
     {% endif %}
