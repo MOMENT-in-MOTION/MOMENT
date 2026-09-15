@@ -45,6 +45,13 @@ def main():
         help="Output directory for generated files (default: project-root/output/)",
         required=False
     )
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        default=False,
+        help="Enable verbose logging",
+        required=False
+    )
     args = parser.parse_args()
 
     if not args.metamodel.endswith(".json"):
@@ -52,7 +59,7 @@ def main():
 
     metamodel_dir = Path(args.metamodel)
 
-    configure_logging(verbose = True)
+    configure_logging(verbose = args.verbose)
 
     try:
         meta_model_dict = structure_data(load_json_as_dict(metamodel_dir))
@@ -87,6 +94,10 @@ def main():
             )
 
             write_generated_code(generated_code=generated_code, output_dir=args.output)
+            logger.info(
+                "Metamodel API generation completed successfully. Files written to: %s",
+                args.output
+            )
         else:
             raise ValueError(f"API configuration could not be loaded. "
                                 f"Please check the configuration file at this path: {CONFIG_PATH}")

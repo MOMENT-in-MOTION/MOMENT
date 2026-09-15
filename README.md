@@ -30,6 +30,7 @@ The metamodel must be a `.json` file.
 |-------------------------------|-----------------------------------------------------------------------------|
 | `-s`, `--serialize <format>`  | Serialize the parsed metamodel to the given format (`json` or `xml`)        |
 | `-o`, `--output <path>`       | Output directory for generated files (default: `project-root/output/`)      |
+| `-v`, `--verbose`             | Enables debug-level logging; defaults to info level                         |
 
 ### Examples
 
