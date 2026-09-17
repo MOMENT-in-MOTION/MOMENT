@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from ...metameta.m_m_m_classes import MetaModel
@@ -8,6 +9,7 @@ from .mapper import TemplateContext
 from .formatter import Formatter
 from .serializer import Serializer, serialize_context
 
+logger = logging.getLogger(__name__)
 
 def generate_meta_model_api(
     meta_model: MetaModel,
@@ -84,5 +86,6 @@ def write_generated_code(generated_code: dict[str, str], output_dir: Path) -> No
         output_path = output_dir / f"{name}.py"
         try:
             output_path.write_text(code, encoding="UTF-8")
+            logger.debug("Generated Metamodel API file %s written to: %s", name, output_path)
         except OSError as e:
             raise OSError(f"Failed to write generated file '{output_path}': {e}") from e
