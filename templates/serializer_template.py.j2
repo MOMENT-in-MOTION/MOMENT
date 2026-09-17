@@ -1,0 +1,128 @@
+{% extends "base_template.py.j2" %}
+
+{% block body %}
+{% if api_config.SerializationFormat is none or api_config.SerializationFormat | length == 0 %}
+{% set active_formats = [] %}
+{% else %}
+{% set active_formats = api_config.SerializationFormat %}
+{% endif %}
+
+{% set use_json = "json" in active_formats %}
+{% set use_xml  = "xml"  in active_formats %}
+{% set has_serialization = active_formats | length > 0 %}
+
+{% if has_serialization %}
+{% if use_json %}
+import json
+{% endif %}
+{% if use_xml %}
+import xml.etree.ElementTree as ET
+{% endif %}
+from pathlib import Path
+from typing import Any
+
+{% if api_config.RelativeImports == "true" %}
+from .class_code import *
+{% else %}
+from class_code import *
+{% endif %}
+
+
+_SERIALIZER_DIR = Path(__file__).parent
+
+
+{% if use_xml %}
+_XML_TYPE_HINTS = {
+    {% for cls in classes %}
+    {% for f in cls.sorted_fields %}
+    {% if f.multiplicity.is_list %}
+    "{{ f.field_name }}": "{{ f.base_type }}",
+    {% endif %}
+    {% endfor %}
+    {% endfor %}
+}
+
+def _dict_to_xml(tag: str, data: Any, parent: ET.Element | None = None) -> ET.Element:
+    el = ET.SubElement(parent, tag) if parent is not None else ET.Element(tag)
+    if isinstance(data, dict):
+        for key, val in data.items():
+            _dict_to_xml(key, val, el)
+    elif isinstance(data, list):
+        item_tag = _XML_TYPE_HINTS.get(tag, tag)
+        for item in data:
+            _dict_to_xml(item_tag, item, el)
+    elif data is not None:
+        el.text = str(data)
+    return el
+
+def _dict_to_json(data: dict) -> dict:
+    result = {}
+    for key, value in data.items():
+        if isinstance(value, list):
+            type_name = "".join(part.capitalize() for part in key.split("_"))
+            result[key] = [{type_name: _dict_to_json(item)} if isinstance(item, dict) else item
+                           for item in value]
+        elif isinstance(value, dict):
+            result[key] = _dict_to_json(value)
+        else:
+            result[key] = value
+    return result
+
+{% endif %}
+class Serializer:
+    """
+    Generated serializer for {{ classes[0].class_name }}.
+    Supported formats: {{ active_formats | join(", ") }}
+    """
+
+    def __init__(self, instance: {{ classes[0].class_name }}):
+        self._instance = instance
+
+    def serialize(
+        self,
+        fmt: str,
+        output_path: str | Path | None = None,
+        file_name: str = "serialized_model"
+    ) -> str:
+        """
+        Serialize the instance to the requested format.
+
+        Args:
+            fmt: One of {{ active_formats | tojson }}.
+            output_path: Destination path. Defaults to the serializer's own directory.
+            file_name: Name of the output file. Defaults to 'serialized_model'.
+        """
+        data = self._instance.to_dict()
+        root_tag = "{{ classes[0].class_name }}"
+
+        {% for fmt_val in active_formats %}
+        {% if loop.first %}
+        if fmt == "{{ fmt_val }}":
+        {% else %}
+        elif fmt == "{{ fmt_val }}":
+        {% endif %}
+            {% if fmt_val == "json" %}
+            result = json.dumps({root_tag: _dict_to_json(data)}, indent=2, default=str)
+            {% elif fmt_val == "xml" %}
+            xml_root = _dict_to_xml(root_tag, data)
+            ET.indent(xml_root)
+            result = ET.tostring(xml_root, encoding="unicode", xml_declaration=True)
+            {% endif %}
+        {% endfor %}
+        else:
+            raise ValueError(
+                f"Unsupported format: {fmt!r}. "
+                f"Supported: {{ active_formats | join(', ') }}"
+            )
+
+        _file_name = file_name if Path(file_name).suffix else f"{file_name}.{fmt}"
+        resolved_path = (
+            Path(output_path) / _file_name if output_path is not None
+            else _SERIALIZER_DIR / _file_name
+        )
+        resolved_path.parent.mkdir(parents=True, exist_ok=True)
+        resolved_path.write_text(result, encoding="utf-8")
+
+{% else %}
+{% endif %}
+{% endblock %}

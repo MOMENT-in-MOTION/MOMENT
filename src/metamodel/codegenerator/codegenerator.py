@@ -2,12 +2,10 @@ import logging
 from pathlib import Path
 
 from ...metameta.m_m_m_classes import MetaModel
-from ...config import TEMPLATES_DIR
 
 from .jinja_engine import render, build_engine
 from .mapper import TemplateContext
 from .formatter import Formatter
-from .serializer import Serializer, serialize_context
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +14,6 @@ def generate_meta_model_api(
     api_config: dict[str],
     formatter: Formatter,
     templates_dir: Path,
-    output_path: Path,
-    serializer: Serializer | None = None,
 ) -> dict[str, str]:
     """
     Generate Python API code from a metamodel.
@@ -46,9 +42,6 @@ def generate_meta_model_api(
     
     formatter.visit_context(context)
 
-    if serializer is not None:
-        serialize_context(context, api_config, serializer, output_path)
-
     context_dict = context.to_dict()
     context_dict.update({"api_config": api_config})
 
@@ -62,6 +55,11 @@ def _render_templates(j2_engine, context_dict: dict) -> dict[str, str]:
     }
     if context_dict.get("api_config", {}).get("RelativeImports") == "true":
         result["__init__"] = ""
+
+    serialization_fmt = context_dict.get("api_config", {}).get("SerializationFormat")
+    if serialization_fmt and isinstance(serialization_fmt, list) and len(serialization_fmt) > 0:
+        result["serializer"] = render(j2_engine, "serializer_template.py.j2", context_dict)
+
     return result
 
 

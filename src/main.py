@@ -10,8 +10,7 @@ from .metamodel.parser import parse_meta_model
 from .metamodel.codegenerator import (
     generate_meta_model_api,
     write_generated_code,
-    get_formatter,
-    get_serializer
+    get_formatter
 )
 from .metamodel.merger import merge_meta_models, UnreachableClassError, ModelMergeError
 from .shared.structure import structure_data
@@ -30,12 +29,6 @@ def main():
         "metamodel",
         metavar="path-to-metamodel",
         help="Path to the metamodel JSON file"
-    )
-    parser.add_argument(
-        "-s", "--serialize",
-        metavar="format",
-        choices=["json", "xml"],
-        help="Serialize the parsed metamodel to the given format instead of generating code"
     )
     parser.add_argument(
         "-o", "--output",
@@ -79,8 +72,6 @@ def main():
         if api_config is not None:
             formatter = get_formatter(api_config["NamingConvention"])
 
-            serializer = get_serializer(args.serialize) if args.serialize is not None else None
-
             # create output dir if it doesn't exist
             args.output.mkdir(parents=True, exist_ok=True)
 
@@ -89,8 +80,6 @@ def main():
                 api_config=api_config,
                 formatter=formatter,
                 templates_dir=TEMPLATES_DIR,
-                serializer=serializer,
-                output_path=args.output
             )
 
             write_generated_code(generated_code=generated_code, output_dir=args.output)

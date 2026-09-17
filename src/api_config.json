@@ -6,7 +6,8 @@
     "UseDoubleUnderscore": "false",
     "ExplicitTypeSafety": "true",
     "NamingConvention": "snake_case",
-    "AllowUnreachableClasses": "false",
+    "AllowUnreachableClasses": "true",
     "RelativeImports": "true",
-    "Inheritance": "native"
+    "Inheritance": "native",
+    "SerializationFormat": ["json", "xml"]
 }
