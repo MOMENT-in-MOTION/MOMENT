@@ -1,5 +1,6 @@
 {% extends "base_template.py.j2" %}
 {% from "macros/field_macro.j2" import render_field %}
+{% from "macros/type_safety.j2" import validate_field %}
 {'#- This template generates Python dataclasses based on the provided class descriptors. It can be configured using the api_config to conform to user specific api design preferences -#}
 {% block imports %}
 from __future__ import annotations
@@ -26,15 +27,6 @@ class {{ cls.class_name }}:
     {% for f in cls.sorted_fields %}
         {% set _attr = ("__" if api_config.UseDoubleUnderscore == "true" else "_" if api_config.StrictPrivacy == "true" else "") + f.field_name %}
         {{ _attr }}: {{ f.type_hint }}{% if f.has_default %} = {{ f.rendered_default }}{% endif %} 
-        {% if f.multiplicity_lower_bound is not none and f.multiplicity_upper_bound is not none %}
-        {% if f.multiplicity_lower_bound == f.multiplicity_upper_bound %}
-            This field has a fixed multiplicity of {{ f.multiplicity_lower_bound }} elements
-        {% else %}
-            has to be between {{ f.multiplicity_lower_bound }} and {{ f.multiplicity_upper_bound }} elements
-        {% endif %}
-        {% endif %}
-        {% if not loop.last %}
-        {% endif %}
     {% endfor %}
     """
     {% for f in cls.sorted_fields %}
@@ -42,20 +34,12 @@ class {{ cls.class_name }}:
     {% if api_config.StrictPrivacy == "true" %}
         {% if api_config.UseDoubleUnderscore == "true" %}
     __{{ render_field(f) }}
-        {% if f.multiplicity_lower_bound is not none and f.multiplicity_upper_bound is not none %}
-        {% endif %}
         {% else %}
     _{{ render_field(f) }}
-        {% if f.multiplicity_lower_bound is not none and f.multiplicity_upper_bound is not none %}
-        {% endif %}
         {% endif %}
     {%- else %}
     {{ render_field(f) }}
-    {% if f.multiplicity_lower_bound is not none and f.multiplicity_upper_bound is not none %}
-        {% endif %}
     {% endif %}
-    _{{f.field_name}}_multiplicity_lower_bound : int
-    _{{f.field_name}}_multiplicity_upper_bound : int
     {% endfor %}
 
     {% if api_config.GenerateConstructors == "true" %}
@@ -67,14 +51,11 @@ class {{ cls.class_name }}:
         """Generated constructor for {{ cls.class_name }}"""
         {% for f in cls.sorted_fields %}
         {% set _attr = ("__" if api_config.UseDoubleUnderscore == "true" else "_" if api_config.StrictPrivacy == "true" else "") + f.field_name %}
-        {% if f.multiplicity.lower is not none and f.multiplicity.upper is not none %}
-        self._{{f.field_name}}.multiplicity.lower = {{f.multiplicity.lower}}
-        self._{{f.field_name}}.multiplicity.upper = {{f.multiplicity.upper}}
-        if not (self._{{f.field_name}}.multiplicity.lower <= len({{f.field_name}}) <= self._{{f.field_name}}.multiplicity.upper):
-            raise ValueError(f"Field '{{_attr}}' must have between {{f.multiplicity.lower}} and {{f.multiplicity.upper}} elements, got {len({{f.field_name}})}")
+        {% if api_config.ExplicitTypeSafety == "true" %}
+        {% set value = f.field_name %}
+        {{ validate_field(f, _attr, f.field_name) | indent(8) }}
         {% endif %}
-        
-        self.{{_attr}} = {{f.field_name}}
+        self.{{ _attr }} = {{ f.field_name }}
         {% endfor %}
     {% endif %}
 
@@ -89,9 +70,11 @@ class {{ cls.class_name }}:
     def get_{{f.field_name}}(self) -> {{f.type_hint}}:
     {% endif %}
         """Generated getter for {{_attr}}"""
-        if self.{{_attr}} is None:
-            raise ValueError("Field '{{_attr}}' has not been initialized.")
-        return self.{{_attr}}
+        {% if not f.multiplicity.is_optional %}
+        if self.{{ _attr }} is None:
+            raise ValueError("Field '{{ _attr }}' has not been initialized.")
+        {% endif %}
+        return self.{{ _attr }}
     {% endif %}
 
     {% if api_config.GenerateSetters == "true" %}
@@ -107,30 +90,9 @@ class {{ cls.class_name }}:
             value: The new value to assign to the "{{_attr}}" attribute
         """
         {% if api_config.ExplicitTypeSafety == "true" %}
-        {% if f.multiplicity.is_optional %}
-        if value is not None:
-            {% if f.multiplicity.is_list %}
-            if not isinstance(value, list) or not all(isinstance(i, {{f.base_type}}) for i in value):
-                raise TypeError(f"Expected type list[{{f.base_type}}] or None for field '{{_attr}}', got {type(value)}")
-            {% else %}
-            if not isinstance(value, {{f.base_type}}):
-                raise TypeError(f"Expected type {{f.base_type}} or None for field '{{_attr}}', got {type(value)}")
-            {% endif %}
-        {% else %}
-        {% if f.multiplicity.is_list or (f.multiplicity_lower_bound is not none and f.multiplicity_upper_bound is not none) %}
-        if not isinstance(value, list) or not all(isinstance(i, {{f.base_type}}) for i in value):
-            raise TypeError(f"Expected type list[{{f.base_type}}] for field '{{_attr}}', got {type(value)}")
-
-        if not (self._{{f.field_name}}_multiplicity_lower_bound <= len(value) <= self._{{f.field_name}}_multiplicity_upper_bound):
-            raise ValueError(f"Field '{{_attr}}' must have between {{f.multiplicity_lower_bound}} and {{f.multiplicity_upper_bound}} elements, got {len(value)}")
-    
-        {% else %}
-        if not isinstance(value, {{f.base_type}}):
-            raise TypeError(f"Expected type {{f.base_type}} for field '{{_attr}}', got {type(value)}")
+        {{ validate_field(f, _attr, "value") | indent(8) }}
         {% endif %}
-        {% endif %}
-        {% endif %}
-        self.{{_attr}} = value
+        self.{{ _attr }} = value
     {% endif %}
 
     {% endfor %}

@@ -81,9 +81,6 @@ class FieldDescriptor(Descriptor):
     association_kind: str | None
     default: str | None
 
-    multiplicity_lower_bound: int | None = None
-    multiplicity_upper_bound: int | None = None
-
     @classmethod
     def from_association(cls, association: Association) -> FieldDescriptor:
         """
@@ -98,15 +95,12 @@ class FieldDescriptor(Descriptor):
         """
         return cls(
             field_name=association.name,
-            base_type=association.association_target.name, 
+            base_type=association.association_target.name,
             multiplicity=association.multiplicity,
             default=association.default_value,
             is_meta_enum=isinstance(association.association_target, MetaEnum),
             is_association=True,
             association_kind=cls._resolve_association(association.association_type),
-            
-            multiplicity_lower_bound=association.multiplicity_lower_bound,
-            multiplicity_upper_bound=association.multiplicity_upper_bound,
         )
 
     @classmethod
@@ -127,9 +121,6 @@ class FieldDescriptor(Descriptor):
             is_meta_enum=False,
             is_association=False,
             association_kind=None,
-            
-            multiplicity_lower_bound=attribute.multiplicity_lower_bound,
-            multiplicity_upper_bound=attribute.multiplicity_upper_bound,
         )
 
     @property
@@ -168,9 +159,9 @@ class FieldDescriptor(Descriptor):
         # int, bool is emited as-is
         return value
 
-    def _render_list_default(self, values: list[str] | str) -> str:
-        items = ", ".join(self._render_scalar_default(v) for v in values)
-        return f"[{items}]"
+    def _render_list_default(self, default: list) -> str:
+        rendered_items = ", ".join(repr(item) for item in default)
+        return f"[{rendered_items}]"
 
     def _resolve_primitive_type(type_option: TypeOptions) -> str:
         """

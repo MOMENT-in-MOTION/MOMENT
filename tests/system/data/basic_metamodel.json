@@ -7,7 +7,7 @@
 				{
 					"name": "Name",
 					"attribute_type": "STRING",
-					"multiplicity": "ONE",
+					"multiplicity": "[1..1]",
 					"default_value": "default"
 				}
 			],

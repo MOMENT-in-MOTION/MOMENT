@@ -7,7 +7,7 @@
 				{
 					"name": "Name",
 					"attribute_type": "STRING",
-					"multiplicity": "ONE",
+					"multiplicity": "[1..1]",
 					"default_value": "root"
 				}
 			],
@@ -20,18 +20,18 @@
 				{
 					"name": "TstNR",
 					"attribute_type": "INT",
-					"multiplicity": "ONE",
+					"multiplicity": "[1..1]",
 					"default_value": 1
 				},
 				{
 					"name": "TestStr",
 					"attribute_type": "STRING",
-					"multiplicity": "ONE"
+					"multiplicity": "[1..1]"
 				},
 				{
 					"name": "TestBool",
 					"attribute_type": "BOOL",
-					"multiplicity": "ONE",
+					"multiplicity": "[1..1]",
 					"default_value": "False"
 				}
 			],
@@ -43,7 +43,7 @@
 				{
 					"name": "SomethingCoolIsHere",
 					"attribute_type": "STRING",
-					"multiplicity": "ONE"
+					"multiplicity": "[1..1]"
 				}
 			],
 			"associations":[]
