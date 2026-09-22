@@ -106,6 +106,7 @@ class {{ cls.class_name }}:
     {% endif %}
 
     {# generate Has functions #}
+    {% if api_config.GenerateHasFunctions == "true" %}
     {% if api_config.NamingConvention == "camelCase" %}
     def has{{ f.field_name[0] | upper }}{{ f.field_name[1:] }}(self) -> bool:
     {% else %}
@@ -115,7 +116,7 @@ class {{ cls.class_name }}:
         if self.{{_attr}} is None:
             return False
         return True
-
+    {% endif %}
     {% endfor %}
 
     def to_dict(self) -> dict:
