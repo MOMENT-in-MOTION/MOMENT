@@ -57,7 +57,6 @@ class MetaAssociationsDict(ImportableDict):
     import_path: NotRequired[Path]
 
 
-
 class MetaEnumLiteralDict(TypedDict):
     """A dictionary containing the name and value of a Meta-Enum literal."""
     name: str

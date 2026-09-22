@@ -11,7 +11,7 @@ from src.metameta.m_m_m_classes import (
     Attribute,
     Association,
     TypeOptions,
-    MultiplicityOptions
+    Multiplicity
 )
 
 from src.metamodel.codegenerator.codegenerator import (
@@ -39,13 +39,13 @@ def simple_meta_class():
         Attribute(
             name="name",
             attribute_type=TypeOptions.STRING,
-            multiplicity=MultiplicityOptions.ONE,
+            multiplicity=Multiplicity(1, 1),
             default_value=None,
         ),
         Attribute(
             name="age",
             attribute_type=TypeOptions.INT,
-            multiplicity=MultiplicityOptions.ONE,
+            multiplicity=Multiplicity(1, 1),
             default_value=None,
         ),
     ]
@@ -63,7 +63,7 @@ def meta_model_with_associations(simple_meta_class, simple_meta_enum):
         Attribute(
             name="street",
             attribute_type=TypeOptions.STRING,
-            multiplicity=MultiplicityOptions.ONE,
+            multiplicity=Multiplicity(1, 1),
             default_value=None,
         ),
     ]
@@ -74,7 +74,7 @@ def meta_model_with_associations(simple_meta_class, simple_meta_enum):
         name="address",
         association_type="reference",
         association_target=address_cls,
-        multiplicity=MultiplicityOptions.ZERO_OR_ONE,
+        multiplicity=Multiplicity(0, 1),
     )
     person_cls.associations = [association]
 

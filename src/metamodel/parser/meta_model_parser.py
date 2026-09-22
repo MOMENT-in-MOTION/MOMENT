@@ -1,4 +1,8 @@
 import logging
+import re
+
+from sre_constants import RANGE
+from sre_constants import RANGE
 from typing import TypeVar
 from enum import Enum
 from pathlib import Path
@@ -10,7 +14,7 @@ from ...metameta.m_m_m_classes import (
     Association,
     Attribute,
     OpenAssociation,
-    MultiplicityOptions,
+    Multiplicity,
     AssociationOptions,
     TypeOptions,
 )
@@ -186,16 +190,46 @@ def _build_attribute(attribute_values: MetaAttributesDict) -> Attribute:
             f"The attribute type '{attribute_values['attribute_type']}' is"
             " not a valid TypeOption name."
         )
-
+    
     return Attribute(
         name=attribute_values["name"],
         attribute_type=attribute_type,
-        multiplicity=_test_enum_value(
-            MultiplicityOptions, attribute_values["multiplicity"]
-        ),
+        multiplicity=_parse_multiplicity(attribute_values["multiplicity"]),
         default_value=attribute_values.get("default_value"),
     )
 
+_MULTIPLICITY_RE = re.compile(
+    r"^\[(?P<lower>\d+)(?:\.\.(?P<upper>\d+|\*))?\]$"
+)
+
+def _parse_multiplicity(raw: str) -> Multiplicity:
+    """Parse '[lower]', '[lower..upper]', or '[lower..*]'."""
+    m = _MULTIPLICITY_RE.match(raw.strip())
+    if not m:
+        raise ValueError(
+            f"Invalid multiplicity format: {raw!r}. "
+            "Expected '[value]', '[lower..upper]', or '[lower..*]'."
+        )
+    lower = int(m.group("lower"))
+    upper_raw = m.group("upper") # None when no '..' present
+
+    if upper_raw is None:
+        # [1] case -> lower=1, upper=1
+        upper = lower
+    elif upper_raw == "*":
+        # [1..*] case -> lower=1, upper=None
+        upper = None
+    else:
+        # [1..4] case -> lower=1, upper=4
+        upper = int(upper_raw)
+        if upper < lower:
+            raise ValueError(
+                f"Multiplicity upper bound ({upper}) is less than "
+                f"lower bound ({lower}) in {raw!r}."
+            )
+
+    mul = Multiplicity(lower=lower, upper=upper)
+    return mul
 
 def _build_association(association_values: MetaAssociationsDict) -> OpenAssociation:
     """Build an Association from the given association definition."""
@@ -204,14 +238,13 @@ def _build_association(association_values: MetaAssociationsDict) -> OpenAssociat
         - association_values.keys()
     ):
         raise ValueError(
-            f"Missing required keys: {missing} in attribute definition: {association_values}"
+            f"Missing required keys: {missing} in association definition: {association_values}"
         )
     link_value = association_values.get("import_link")
+
     return OpenAssociation(
         name=association_values["name"],
-        multiplicity=_test_enum_value(
-            MultiplicityOptions, association_values["multiplicity"]
-        ),
+        multiplicity=_parse_multiplicity(association_values["multiplicity"]),
         association_type=_test_enum_value(
             AssociationOptions, association_values["association_type"]
         ),

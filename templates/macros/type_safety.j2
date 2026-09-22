@@ -1,0 +1,50 @@
+{% macro validate_field(f, attr_name, param_name) %}
+{% if f.multiplicity.is_optional %}
+if {{ param_name }} is not None:
+    {% if f.multiplicity.is_list %}
+    if not isinstance({{ param_name }}, list) or not all(isinstance(i, {{ f.base_type }}) for i in {{ param_name }}):
+        raise TypeError(
+            f"Expected 'list[{{ f.base_type }}]' or None for '{{ attr_name }}', got {type({{ param_name }}).__name__!r}"
+        )
+    {% if f.multiplicity.upper is not none %}
+    if not ({{ f.multiplicity.lower }} <= len({{ param_name }}) <= {{ f.multiplicity.upper }}):
+        raise ValueError(
+            f"Field '{{ attr_name }}' must have between {{ f.multiplicity.lower }} and "
+            f"{{ f.multiplicity.upper }} elements, got {len({{ param_name }})}"
+        )
+    {% elif f.multiplicity.lower > 0 %}
+    if len({{ param_name }}) < {{ f.multiplicity.lower }}:
+        raise ValueError(
+            f"Field '{{ attr_name }}' must have at least {{ f.multiplicity.lower }} element(s), got {len({{ param_name }})}"
+        )
+    {% endif %}
+    {% else %}
+    if not isinstance({{ param_name }}, {{ f.base_type }}):
+        raise TypeError(
+            f"Expected '{{ f.base_type }}' or None for '{{ attr_name }}', got {type({{ param_name }}).__name__!r}"
+        )
+    {% endif %}
+{% elif f.multiplicity.is_list %}
+if not isinstance({{ param_name }}, list) or not all(isinstance(i, {{ f.base_type }}) for i in {{ param_name }}):
+    raise TypeError(
+        f"Expected 'list[{{ f.base_type }}]' for '{{ attr_name }}', got {type({{ param_name }}).__name__!r}"
+    )
+{% if f.multiplicity.upper is not none %}
+if not ({{ f.multiplicity.lower }} <= len({{ param_name }}) <= {{ f.multiplicity.upper }}):
+    raise ValueError(
+        f"Field '{{ attr_name }}' must have between {{ f.multiplicity.lower }} and "
+        f"{{ f.multiplicity.upper }} elements, got {len({{ param_name }})}"
+    )
+{% elif f.multiplicity.lower > 0 %}
+if len({{ param_name }}) < {{ f.multiplicity.lower }}:
+    raise ValueError(
+        f"Field '{{ attr_name }}' must have at least {{ f.multiplicity.lower }} element(s), got {len({{ param_name }})}"
+    )
+{% endif %}
+{% else %}
+if not isinstance({{ param_name }}, {{ f.base_type }}):
+    raise TypeError(
+        f"Expected '{{ f.base_type }}' for '{{ attr_name }}', got {type({{ param_name }}).__name__!r}"
+    )
+{% endif %}
+{% endmacro %}

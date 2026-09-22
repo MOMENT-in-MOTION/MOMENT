@@ -12,7 +12,7 @@ from ...metameta.m_m_m_classes import (
     TypeOptions,
     Attribute,
     MetaModel,
-    MultiplicityOptions,
+    Multiplicity,
     OpenAssociation
 )
 
@@ -70,10 +70,12 @@ class FieldDescriptor(Descriptor):
         is_association:   True when derived from an Association.
         is_meta_enum:     True when base_type refers to a MetaEnum.
         association_kind: 'composition', 'reference', or None.
+        multiplicity_lower_bound: Lower bound of the multiplicity, or None if not specified.
+        multiplicity_upper_bound: Upper bound of the multiplicity, or None if not specified.
     """
     field_name: str
     base_type: str
-    multiplicity: MultiplicityOptions
+    multiplicity: Multiplicity
     is_association: bool
     is_meta_enum: bool
     association_kind: str | None
@@ -94,7 +96,7 @@ class FieldDescriptor(Descriptor):
         return cls(
             field_name=association.name,
             base_type=association.association_target.name,
-            multiplicity=MultiplicityOptions(association.multiplicity or "ANY"),
+            multiplicity=association.multiplicity,
             default=association.default_value,
             is_meta_enum=isinstance(association.association_target, MetaEnum),
             is_association=True,
@@ -114,7 +116,7 @@ class FieldDescriptor(Descriptor):
         return cls(
             field_name=attribute.name,
             base_type=primitive_type,
-            multiplicity=MultiplicityOptions(attribute.multiplicity or "ANY"),
+            multiplicity=attribute.multiplicity,
             default=attribute.default_value,
             is_meta_enum=False,
             is_association=False,
@@ -157,9 +159,9 @@ class FieldDescriptor(Descriptor):
         # int, bool is emited as-is
         return value
 
-    def _render_list_default(self, values: list[str] | str) -> str:
-        items = ", ".join(self._render_scalar_default(v) for v in values)
-        return f"[{items}]"
+    def _render_list_default(self, default: list) -> str:
+        rendered_items = ", ".join(repr(item) for item in default)
+        return f"[{rendered_items}]"
 
     def _resolve_primitive_type(type_option: TypeOptions) -> str:
         """

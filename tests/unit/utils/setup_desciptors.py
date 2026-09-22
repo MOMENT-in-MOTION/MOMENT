@@ -1,13 +1,13 @@
 # disable error: Too many positional arguments
 # pylint: disable=R0917
 
-from src.metameta.m_m_m_classes import MultiplicityOptions
+from src.metameta.m_m_m_classes import Multiplicity
 from src.metamodel.codegenerator.mapper import ClassDescriptor, FieldDescriptor, EnumDescriptor
 
 def make_field(
     name: str = "my_field",
     base_type: str = "MyType",
-    multiplicity: MultiplicityOptions = MultiplicityOptions.ONE,
+    multiplicity: Multiplicity = Multiplicity(1, 1),
     is_association: bool = False,
     is_meta_enum: bool = False,
     association_kind: str | None = None,
