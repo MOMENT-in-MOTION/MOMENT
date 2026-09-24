@@ -2,7 +2,58 @@
 # pylint: disable=R0917
 
 from src.metameta.m_m_m_classes import Multiplicity
-from src.metamodel.codegenerator.mapper import ClassDescriptor, FieldDescriptor, EnumDescriptor
+from src.metamodel.codegenerator.mapper import (
+    ClassDescriptor,
+    FieldDescriptor,
+    EnumDescriptor,
+)
+
+DEFAULT_CONFIG = {
+    "GenerateGetters": "true",
+    "GenerateSetters": "true",
+    "GenerateConstructors": "true",
+    "GenerateHasFunctions": "true",
+    "StrictPrivacy": "true",
+    "UseDoubleUnderscore": "false",
+    "ExplicitTypeSafety": "true",
+    "NamingConvention": "snake_case",
+    "AllowUnreachableClasses": "false",
+    "RelativeImports": "true",
+    "Inheritance": "native",
+    "ImportMode": "merge",
+}
+
+
+def make_grouped_import_model() -> dict:
+    """Return a model with multiple imported symbols from one module."""
+    return {
+        "name": "DemoModel",
+        "enums": [],
+        "classes": [
+            {
+                "name": "DemoModel",
+                "attributes": [],
+                "associations": [
+                    {
+                        "name": "owner",
+                        "multiplicity": "[1]",
+                        "association_type": "REFERENCE",
+                        "target": "Person",
+                        "import_link": "models.person",
+                    },
+                    {
+                        "name": "driver",
+                        "multiplicity": "[1]",
+                        "association_type": "REFERENCE",
+                        "target": "Driver",
+                        "import_link": "models.person",
+                    },
+                ],
+                "inherits": [],
+            }
+        ],
+    }
+
 
 def make_field(
     name: str = "my_field",
@@ -25,8 +76,7 @@ def make_field(
 
 
 def make_class(
-    name: str = "my_class",
-    fields: list[FieldDescriptor] | None = None
+    name: str = "my_class", fields: list[FieldDescriptor] | None = None
 ) -> ClassDescriptor:
     return ClassDescriptor(
         class_name=name,

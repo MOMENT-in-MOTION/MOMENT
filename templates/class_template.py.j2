@@ -4,6 +4,11 @@
 {'#- This template generates Python dataclasses based on the provided class descriptors. It can be configured using the api_config to conform to user specific api design preferences -#}
 {% block imports %}
 from __future__ import annotations
+{% if module_imports is defined and module_imports %}
+{% for import_statement in module_imports %}
+{{ import_statement }}
+{% endfor %}
+{% endif %}
 {% if enums is defined and enums|length > 0 %}
 {% if api_config.RelativeImports == "true" %}
 from .enum_code import *
@@ -22,11 +27,11 @@ class {{ cls.class_name }}:
 {% endif %}
     {# Generate a docstring listing the fields and their types #}
     """
-    Generated dataclass for {{ cls.class_name }} 
+    Generated dataclass for {{ cls.class_name }}
     Attributes:
     {% for f in cls.sorted_fields %}
         {% set _attr = ("__" if api_config.UseDoubleUnderscore == "true" else "_" if api_config.StrictPrivacy == "true" else "") + f.field_name %}
-        {{ _attr }}: {{ f.type_hint }}{% if f.has_default %} = {{ f.rendered_default }}{% endif %} 
+        {{ _attr }}: {{ f.type_hint }}{% if f.has_default %} = {{ f.rendered_default }}{% endif %}
     {% endfor %}
     """
     {% for f in cls.sorted_fields %}

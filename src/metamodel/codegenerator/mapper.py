@@ -13,10 +13,11 @@ from ...metameta.m_m_m_classes import (
     Attribute,
     MetaModel,
     Multiplicity,
-    OpenAssociation
+    OpenAssociation,
 )
 
 logger = logging.getLogger(__name__)
+
 
 class Visitor(ABC):
     """
@@ -24,7 +25,7 @@ class Visitor(ABC):
     """
 
     @abstractmethod
-    def visit_class(self, class_descriptor: ClassDescriptor) -> None: 
+    def visit_class(self, class_descriptor: ClassDescriptor) -> None:
         pass
 
     @abstractmethod
@@ -48,6 +49,7 @@ class Descriptor(ABC):
     """
     Abstract base for all template descriptors.
     """
+
     @abstractmethod
     def accpet(self, visitor: Visitor) -> None:
         pass
@@ -73,6 +75,7 @@ class FieldDescriptor(Descriptor):
         multiplicity_lower_bound: Lower bound of the multiplicity, or None if not specified.
         multiplicity_upper_bound: Upper bound of the multiplicity, or None if not specified.
     """
+
     field_name: str
     base_type: str
     multiplicity: Multiplicity
@@ -104,9 +107,22 @@ class FieldDescriptor(Descriptor):
         )
 
     @classmethod
+    def from_open_association(cls, association: OpenAssociation) -> FieldDescriptor:
+        """Build a field for an association whose target is imported externally."""
+        return cls(
+            field_name=association.name,
+            base_type=association.association_target_name,
+            multiplicity=association.multiplicity,
+            default=association.default_value,
+            is_meta_enum=False,
+            is_association=True,
+            association_kind=cls._resolve_association(association.association_type),
+        )
+
+    @classmethod
     def from_attribute(cls, attribute: Attribute) -> FieldDescriptor:
         """
-        Factory for building a FieldDescriptor form a attribute 
+        Factory for building a FieldDescriptor form a attribute
 
         Args:
             attribute: The Attribute instance from the meta-model.
@@ -191,12 +207,15 @@ class ClassDescriptor(Descriptor):
         sorted_fields:  Fields ordered so required fields precede optional ones
                         (a dataclass constraint).
     """
+
     class_name: str
     fields: list[FieldDescriptor]
     inherits: list[str] | None = None
 
     @classmethod
-    def from_meta_class(cls, meta_class: MetaClass) -> ClassDescriptor:
+    def from_meta_class(
+        cls, meta_class: MetaClass, import_mode: str = "merge"
+    ) -> ClassDescriptor:
         """
         Build a ClassDescriptor for a meta-model class.
 
@@ -210,6 +229,11 @@ class ClassDescriptor(Descriptor):
         association_fields = []
         for assoc in meta_class.associations:
             if isinstance(assoc, OpenAssociation):
+                if import_mode == "import" and assoc.import_link:
+                    association_fields.append(
+                        FieldDescriptor.from_open_association(assoc)
+                    )
+                    continue
                 logger.warning(
                     f"Association '{assoc.name}' in class '{meta_class.name}' is an OpenAssociation. "
                     f"It was not resolved and will be skipped in code generation."
@@ -220,17 +244,17 @@ class ClassDescriptor(Descriptor):
         return cls(
             class_name=meta_class.name,
             fields=[
-                FieldDescriptor.from_attribute(attr)
-                for attr in meta_class.attributes
-            ] + association_fields,
-            inherits=meta_class.inherits
+                FieldDescriptor.from_attribute(attr) for attr in meta_class.attributes
+            ]
+            + association_fields,
+            inherits=meta_class.inherits,
         )
 
     @property
     def sorted_fields(self) -> list[FieldDescriptor]:
         """Required fields first, then fields with defaults."""
         return sorted(self.fields, key=lambda f: f.has_default)
-    
+
     def accpet(self, visitor: Visitor) -> None:
         visitor.visit_class(self)
 
@@ -246,8 +270,9 @@ class EnumDescriptor(Descriptor):
                    In a dictionary where each key is the member name
                    and each value the member value.
     """
+
     enum_name: str
-    options: dict[str,str]
+    options: dict[str, str]
 
     @classmethod
     def from_meta_enum(cls, enum: MetaEnum):
@@ -261,7 +286,7 @@ class EnumDescriptor(Descriptor):
         for meta_enum_literal in enum.values:
             enum_values[meta_enum_literal.name] = meta_enum_literal.value
         return cls(enum_name=enum.name, options=enum_values)
-    
+
     def accpet(self, visitor: Visitor) -> None:
         visitor.visit_enum(self)
 
@@ -278,14 +303,20 @@ class TemplateContext:
         classes: All class descriptors, in metamodel order.
         enums:   All enum descriptors, in declaration order.
     """
+
     classes: list[ClassDescriptor]
     enums: list[EnumDescriptor]
 
     @classmethod
-    def from_meta_model(cls, meta_model: MetaModel) -> "TemplateContext":
+    def from_meta_model(
+        cls, meta_model: MetaModel, import_mode: str = "merge"
+    ) -> "TemplateContext":
         """Build a TemplateContext from a MetaModel instance."""
         return cls(
-            classes=[ClassDescriptor.from_meta_class(c) for c in meta_model.classes],
+            classes=[
+                ClassDescriptor.from_meta_class(c, import_mode=import_mode)
+                for c in meta_model.classes
+            ],
             enums=[EnumDescriptor.from_meta_enum(e) for e in meta_model.enums],
         )
 
@@ -310,7 +341,7 @@ class TemplateContext:
                 superclass = class_map[superclass_name]
                 # Add fields from the superclass to the subclass
                 cls.fields.extend(superclass.fields)
-    
+
     def to_dict(self) -> dict:
         return {
             "classes": self.classes,

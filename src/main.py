@@ -59,12 +59,14 @@ def main():
 
         api_config = load_json_as_dict(CONFIG_PATH)
         allow_unreachable = api_config.get("AllowUnreachableClasses", "false").lower() == "true"
+        import_mode = api_config.get("ImportMode", "merge").lower()
 
-        metamodel = parse_meta_model(meta_model_dict=meta_model_dict)
+        metamodel = parse_meta_model(meta_model_dict=meta_model_dict, import_mode=import_mode)
         merge_meta_models(
             metamodel,
             metamodel_dir,
-            allow_unreachable_classes=allow_unreachable
+            allow_unreachable_classes=allow_unreachable,
+            import_mode=import_mode,
         )
 
         logger.debug(metamodel.pretty())

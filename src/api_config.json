@@ -10,5 +10,9 @@
     "AllowUnreachableClasses": "true",
     "RelativeImports": "true",
     "Inheritance": "native",
-    "SerializationFormat": ["json", "xml"]
+    "ImportMode": "merge",
+    "SerializationFormat": [
+        "json",
+        "xml"
+    ]
 }
