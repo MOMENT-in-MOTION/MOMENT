@@ -1,0 +1,33 @@
+{
+    "name": "ImportDemoModel",
+    "enums": [],
+    "classes": [
+        {
+            "name": "Customer",
+            "attributes": [
+                {
+                    "name": "CustomerName",
+                    "attribute_type": "STRING",
+                    "multiplicity": "[1]"
+                }
+            ],
+            "associations": [
+                {
+                    "name": "PrimaryAddress",
+                    "multiplicity": "[1]",
+                    "association_type": "REFERENCE",
+                    "target": "Address",
+                    "import_link": "models.addresses"
+                },
+                {
+                    "name": "BillingAddress",
+                    "multiplicity": "[1]",
+                    "association_type": "REFERENCE",
+                    "target": "BillingAddress",
+                    "import_link": "models.addresses"
+                }
+            ],
+            "inherits": []
+        }
+    ]
+}

@@ -1,0 +1,271 @@
+{
+	"name": "MetaModelDummy",
+	"enums": [
+		{
+			"name": "Example_Enum_1",
+			"values": [
+				"VALUE_1",
+				"VALUE_2",
+				"VALUE_3",
+				"VALUE_4"
+			]
+		},
+		{
+			"name": "Example_Enum_2",
+			"values": [
+				{
+					"name": "VALUE_1",
+					"value": "Tree"
+				},
+				{
+					"name": "VALUE_2",
+					"value": "Flower"
+				}
+			]
+		}
+	],
+	"classes": [
+		{
+			"name": "MetaModelDummy",
+			"attributes": [
+				{
+					"name": "Name",
+					"attribute_type": "STRING",
+					"multiplicity": "[1]",
+					"default_value": "root"
+				}
+			],
+			"associations": [
+				{
+					"name": "Class_Imported_1",
+					"import_link": "tests/system/data/snapshots/test_jsons/snsh_sub_model_json.json",
+					"multiplicity": "[1]",
+					"association_type": "COMPOSITION",
+					"target": "Imported_MetaClassDummy_1"
+				},
+				{
+					"name": "Class_MetaClassDummy_1",
+					"multiplicity": "[1]",
+					"association_type": "COMPOSITION",
+					"target": "MetaClassDummy_1"
+				},
+				{
+					"name": "Class_MetaClassDummy_2",
+					"multiplicity": "[1]",
+					"association_type": "COMPOSITION",
+					"target": "MetaClassDummy_2"
+				},
+				{
+					"name": "Class_MetaReferenceDummy_1",
+					"multiplicity": "[1]",
+					"association_type": "COMPOSITION",
+					"target": "MetaReferenceDummy_1"
+				},
+				{
+					"name": "Class_MetaReferenceDummy_2",
+					"multiplicity": "[0..1]",
+					"association_type": "COMPOSITION",
+					"target": "MetaReferenceDummy_2"
+				},
+				{
+					"name": "Class_MetaReferenceDummy_3",
+					"multiplicity": "[1..*]",
+					"association_type": "COMPOSITION",
+					"target": "MetaReferenceDummy_3"
+				},
+				{
+					"name": "Class_MetaReferenceDummy_4",
+					"multiplicity": "[0..*]",
+					"association_type": "COMPOSITION",
+					"target": "MetaReferenceDummy_4"
+				},
+				{
+					"name": "Enum_Example_Enum_1",
+					"multiplicity": "[1]",
+					"association_type": "COMPOSITION",
+					"target": "Example_Enum_1"
+				}
+			]
+		},
+		{
+			"name": "MetaClassDummy_1",
+			"attributes": [
+				{
+					"name": "Name",
+					"attribute_type": "STRING",
+					"multiplicity": "[1]"
+				},
+				{
+					"name": "TstNR",
+					"attribute_type": "INT",
+					"multiplicity": "[1]",
+					"default_value": 1
+				},
+				{
+					"name": "TestStr",
+					"attribute_type": "STRING",
+					"multiplicity": "[1]"
+				},
+				{
+					"name": "TestBool",
+					"attribute_type": "BOOL",
+					"multiplicity": "[1]",
+					"default_value": "False"
+				}
+			],
+			"associations": [
+				{
+					"name": "Class_MetaCompositionDummy_1",
+					"multiplicity": "[1]",
+					"association_type": "COMPOSITION",
+					"target": "MetaCompositionDummy_1"
+				},
+				{
+					"name": "TestEnum",
+					"target": "Example_Enum_2",
+					"association_type": "REFERENCE",
+					"multiplicity": "[1]",
+					"default_value": "VALUE_1"
+				}
+			]
+		},
+		{
+			"name": "MetaClassDummy_2",
+			"attributes": [
+				{
+					"name": "Name",
+					"attribute_type": "STRING",
+					"multiplicity": "[1]"
+				},
+				{
+					"name": "TstNR",
+					"attribute_type": "INT",
+					"multiplicity": "[1]",
+					"default_value": 125
+				},
+				{
+					"name": "TestStr",
+					"attribute_type": "STRING",
+					"multiplicity": "[0..1]"
+				},
+				{
+					"name": "TestBool",
+					"attribute_type": "BOOL",
+					"multiplicity": "[1..*]",
+					"default_value": [
+						"True",
+						"False"
+					]
+				}
+			],
+			"associations": [
+				{
+					"name": "Class_MetaCompositionDummies_1",
+					"multiplicity": "[0..*]",
+					"association_type": "COMPOSITION",
+					"target": "MetaCompositionDummy_1"
+				},
+				{
+					"name": "Class_MetaReferenceDummies_1",
+					"multiplicity": "[0..*]",
+					"association_type": "REFERENCE",
+					"target": "MetaReferenceDummy_1"
+				},
+				{
+					"name": "Class_MetaReferenceDummies_2",
+					"multiplicity": "[0..*]",
+					"association_type": "REFERENCE",
+					"target": "MetaReferenceDummy_2"
+				},
+				{
+					"name": "Class_MetaReferenceDummies_3",
+					"multiplicity": "[0..*]",
+					"association_type": "REFERENCE",
+					"target": "MetaReferenceDummy_3"
+				},
+				{
+					"name": "Class_MetaReferenceDummies_4",
+					"multiplicity": "[0..*]",
+					"association_type": "REFERENCE",
+					"target": "MetaReferenceDummy_4"
+				},
+				{
+					"name": "TestEnum",
+					"target": "Example_Enum_1",
+					"association_type": "REFERENCE",
+					"multiplicity": "[1..*]",
+					"default_value": [
+						"VALUE_1",
+						"VALUE_2"
+					]
+				}
+			]
+		},
+		{
+			"name": "MetaCompositionDummy_1",
+			"attributes": [
+				{
+					"name": "Name",
+					"attribute_type": "STRING",
+					"multiplicity": "[1]"
+				}
+			],
+			"associations": []
+		},
+		{
+			"name": "MetaReferenceDummy_1",
+			"attributes": [
+				{
+					"name": "Name",
+					"attribute_type": "STRING",
+					"multiplicity": "[1]"
+				}
+			],
+			"associations": []
+		},
+		{
+			"name": "MetaReferenceDummy_2",
+			"attributes": [
+				{
+					"name": "Name",
+					"attribute_type": "STRING",
+					"multiplicity": "[1]"
+				}
+			],
+			"associations": []
+		},
+		{
+			"name": "MetaReferenceDummy_3",
+			"attributes": [
+				{
+					"name": "Name",
+					"attribute_type": "STRING",
+					"multiplicity": "[1]"
+				}
+			],
+			"associations": []
+		},
+		{
+			"name": "MetaReferenceDummy_4",
+			"attributes": [
+				{
+					"name": "Name",
+					"attribute_type": "STRING",
+					"multiplicity": "[1]"
+				}
+			],
+			"associations": []
+		}
+	],
+	"enums_2": [
+		{
+			"name": "Example_Enum_3",
+			"values": [
+				"VALUE_4",
+				"VALUE_3",
+				"VALUE_2",
+				"VALUE_1"
+			]
+		}
+	]
+}

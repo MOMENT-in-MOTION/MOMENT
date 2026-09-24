@@ -4,7 +4,7 @@ source-roots = .
 jobs=1
 
 # Add files or directories to the ignore list (comma-separated)
-ignore=CVS,.git,__pycache__,.venv,venv,migrations
+ignore=CVS,.git,__pycache__,.venv,venv,migrations,snapshots
 
 # Files or directories matching the regex patterns are skipped
 ignore-patterns=.*\.pyc,.*\.pyi
@@ -17,6 +17,7 @@ disable=
     missing-module-docstring,
     too-few-public-methods,
     too-many-arguments,
+    too-many-positional-arguments,
     too-many-instance-attributes,
     too-many-locals,
     too-many-branches,

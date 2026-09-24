@@ -12,17 +12,19 @@ from enum import Enum
 # Enumerations to be used in the MetaModel
 # ---------------------------------------------------------------------------
 
+
 @dataclass(eq=True)
 class Multiplicity:
     """
     Represents the multiplicity of an attribute or association.
-    
+
     Attributes:
         lower: Lower bound of the multiplicity.
         upper: Upper bound of the multiplicity. None represents '*'.
     """
+
     lower: int
-    upper: Optional[int] # None is *
+    upper: Optional[int]  # None is *
 
     @property
     def is_list(self) -> bool:
@@ -233,13 +235,13 @@ class OpenAssociation(MetaElement):
         association_type: Association type.
         association_target_name: Name of the unresolved target.
     """
+
     name: str
     multiplicity: Multiplicity
     association_type: AssociationOptions
     association_target_name: str
     import_link: Path | None = None
     default_value: Any | None = None
-
 
     def validate(self) -> None:
         """Validate the open association.
@@ -264,7 +266,7 @@ class OpenAssociation(MetaElement):
             multiplicity=self.multiplicity,
             association_type=self.association_type,
             association_target=final_target,
-            default_value=self.default_value
+            default_value=self.default_value,
         )
 
 
@@ -285,7 +287,9 @@ class MetaClass(MetaElement):
 
     name: str
     attributes: list[Attribute] = field(default_factory=list)
-    associations: list[Association] | list[OpenAssociation] = field(default_factory=list)
+    associations: list[Association] | list[OpenAssociation] = field(
+        default_factory=list
+    )
     inherits: list[str] = field(default_factory=list)
 
     def validate(self) -> None:
@@ -365,7 +369,9 @@ class MetaClass(MetaElement):
                 if multiplicity_name_lower == multiplicity_name_upper:
                     multiplicity_name = multiplicity_name_lower
                 else:
-                    multiplicity_name = f"{multiplicity_name_lower}..{multiplicity_name_upper}"
+                    multiplicity_name = (
+                        f"{multiplicity_name_lower}..{multiplicity_name_upper}"
+                    )
                 result += (
                     f"{pad}    - {attr.name}: \t\t"
                     f"{attr.attribute_type.name} "
@@ -388,7 +394,9 @@ class MetaClass(MetaElement):
                 if multiplicity_name_lower == multiplicity_name_upper:
                     multiplicity_name = multiplicity_name_lower
                 else:
-                    multiplicity_name = f"{multiplicity_name_lower}..{multiplicity_name_upper}"
+                    multiplicity_name = (
+                        f"{multiplicity_name_lower}..{multiplicity_name_upper}"
+                    )
 
                 if isinstance(assoc, OpenAssociation):
                     result += (

@@ -2,7 +2,13 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from ...metameta.m_m_m_classes import MetaClass, MetaModel, OpenAssociation
+from ...metameta.m_m_m_classes import (
+    Association,
+    AssociationOptions,
+    MetaClass,
+    MetaModel,
+    OpenAssociation,
+)
 from ...metamodel.parser import parse_meta_model
 from ...shared.load_json_as_dict import load_json_as_dict
 from ...shared.structure import structure_data
@@ -19,10 +25,18 @@ class UnreachableClassError(ModelMergeError):
 
 
 class MetaModelMerger:
-    def __init__(self, main_model: MetaModel, main_import_path: Path, allow_unreachable_classes: bool = False):
+    def __init__(
+        self,
+        main_model: MetaModel,
+        main_import_path: Path,
+        allow_unreachable_classes: bool = False,
+        import_mode: str = "merge",
+    ):
+        """Initialize the merger with a main model and its import path."""
         self.main_model = main_model
-        self.visited_paths: set[Path] = {main_import_path}
+        self.visited_paths: set[Path] = {Path(main_import_path).resolve()}
         self.allow_unreachable_classes = allow_unreachable_classes
+        self.import_mode = import_mode.lower()
 
     def merge(self) -> MetaModel:
         """Entry point for the merger that loads the main Meta-Model and all available
@@ -30,14 +44,20 @@ class MetaModelMerger:
         Returns:
             MetaModel: The merged Meta-Model.
         """
-        self._find_and_merge_imports()
+        if self.import_mode == "import":
+            logger.info(
+                "ImportMode='import': skipping submodel merge and import resolution"
+            )
+        else:
+            self._find_and_merge_imports()
+
         self._resolve_all_open_references()
         self._verify_all_resolved()
         self._verify_root_class_references_all_others()
         return self.main_model
 
     def _find_and_merge_imports(self) -> None:
-        """Recursively finds and merges all imported sub-models into the main model."""
+        """Recursively find and merge all imported sub-models into the main model."""
         processed_classes: set[int] = set()
 
         while True:
@@ -50,27 +70,42 @@ class MetaModelMerger:
             for cls in unprocessed:
                 processed_classes.add(id(cls))
                 for assoc in cls.associations:
-                    if (
-                        assoc.import_link
-                        and assoc.import_link not in self.visited_paths
-                    ):
-                        self._load_and_merge_path(assoc.import_link)
+                    if not assoc.import_link:
+                        continue
+
+                    import_path = Path(assoc.import_link).resolve()
+                    if import_path not in self.visited_paths:
+                        self._load_and_merge_path(import_path)
 
     def _load_and_merge_path(self, path: Path) -> None:
-        self.visited_paths.add(path)
-        logger.info("Importing Meta-Model from path: %s", path)
+        """Load and merge a meta-model from the specified path."""
+        resolved_path = Path(path).resolve()
+        self.visited_paths.add(resolved_path)
+        logger.info("Importing Meta-Model from path: %s", resolved_path)
 
-        raw_dict = load_json_as_dict(path)
+        try:
+            raw_dict = load_json_as_dict(resolved_path)
+        except ValueError as exc:
+            if self.import_mode == "merge":
+                raise ModelMergeError(
+                    f"Expected a JSON file while resolving import_link '{resolved_path}', but the model "
+                    "appears to use a Python module import. This usually means the project is configured "
+                    "with ImportMode='merge' while the metamodel uses ImportMode='import'. Use the "
+                    "correct ImportMode or replace the import_link with a .json file path."
+                ) from exc
+            raise
+
         meta_model_dict = structure_data(raw_dict)
         if meta_model_dict is None:
             raise ModelMergeError(
-                f"The Meta-Model with path '{path}' could not be loaded."
+                f"The Meta-Model with path '{resolved_path}' could not be loaded."
             )
 
         new_model = parse_meta_model(meta_model_dict)
         self._merge_models(new_model)
 
     def _merge_models(self, new_model: MetaModel) -> None:
+        """Merge a new model into the main model."""
         existing_names = {cls.name for cls in self.main_model.classes}
         for cls in new_model.classes:
             if cls.name in existing_names:
@@ -82,6 +117,7 @@ class MetaModelMerger:
         self.main_model.enums.extend(new_model.enums)
 
     def _resolve_all_open_references(self) -> None:
+        """Resolve all open association references to their target classes."""
         class_map = {cls.name: cls for cls in self.main_model.classes}
         enum_map = {enum.name: enum for enum in self.main_model.enums}
 
@@ -104,6 +140,7 @@ class MetaModelMerger:
                     )
 
     def _verify_all_resolved(self) -> bool:
+        """Verify that all associations in the model have been resolved."""
         unresolved = [
             assoc.name
             for obj in self.main_model.classes
@@ -116,20 +153,7 @@ class MetaModelMerger:
         return True
 
     def _verify_root_class_references_all_others(self) -> None:
-        """
-        Verify that all classes in the main model are reachable from the root class
-        by following association targets (BFS/DFS traversal).
-
-        The first class in ``self.main_model.classes`` is treated as the root.
-        A class is considered reachable if it can be reached transitively via
-        associations. Enum targets that are not present in the class lookup are
-        silently skipped.
-
-        If unreachable classes are found, behaviour depends on
-        ``self.allow_unreachable_classes``:
-        - ``False`` (default): raises :exc:`UnreachableClassError`.
-        - ``True``: logs a warning and continues.
-        """
+        """Verify that all classes are reachable from the root class via associations."""
         if not self.main_model.classes:
             logger.warning("No root class found in the main model.")
             return
@@ -140,8 +164,12 @@ class MetaModelMerger:
         class_by_name: dict[str, MetaClass] = {
             cls.name: cls for cls in self.main_model.classes
         }
+        inherited_classes: dict[str, list[str]] = {}
+        for cls in self.main_model.classes:
+            for parent_name in cls.inherits:
+                inherited_classes.setdefault(parent_name, []).append(cls.name)
 
-        # BFS/DFS from root, following association targets
+        # Traverse composition targets and derived classes from the root.
         visited: set[str] = set()
         queue: list[str] = [root_class.name]
 
@@ -152,14 +180,22 @@ class MetaModelMerger:
             visited.add(current_name)
 
             current_cls = class_by_name.get(current_name)
-            
+
             # if target is an enum then skip
             if current_cls is None:
-                continue 
+                continue
+
+            for inherited_class_name in inherited_classes.get(current_name, []):
+                if inherited_class_name not in visited:
+                    queue.append(inherited_class_name)
 
             for assoc in current_cls.associations:
-                target_name = assoc.association_target.name
+                if not isinstance(assoc, Association):
+                    continue
+                if assoc.association_type is not AssociationOptions.COMPOSITION:
+                    continue
 
+                target_name = assoc.association_target.name
                 if target_name not in visited:
                     queue.append(target_name)
 
@@ -173,19 +209,25 @@ class MetaModelMerger:
                 logger.warning(
                     "The following classes are not reachable from the root class '%s': %s",
                     root_class.name,
-                    ', '.join(sorted(unreachable))
+                    ", ".join(sorted(unreachable)),
                 )
             else:
                 raise UnreachableClassError(
-                    "The following classes are not reachable from the root class " +
-                    f"'{root_class.name}': {', '.join(sorted(unreachable))}"
+                    "The following classes are not reachable from the root class "
+                    + f"'{root_class.name}': {', '.join(sorted(unreachable))}"
                 )
-        
+
 
 def merge_meta_models(
-        metamodel: MetaModel,
-        main_import_path: Path,
-        allow_unreachable_classes: bool = False
-    ) -> MetaModel:
+    metamodel: MetaModel,
+    main_import_path: Path,
+    allow_unreachable_classes: bool = False,
+    import_mode: str = "merge",
+) -> MetaModel:
     """Entry point for merging the main Meta-Model with all sub-models."""
-    return MetaModelMerger(metamodel, main_import_path, allow_unreachable_classes).merge()
+    return MetaModelMerger(
+        metamodel,
+        main_import_path,
+        allow_unreachable_classes,
+        import_mode=import_mode,
+    ).merge()
