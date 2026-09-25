@@ -1,0 +1,16 @@
+[project]
+name = "MOMENT"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+dependencies = [
+    "jinja2==3.1.6",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+    "coverage-enable-subprocess==1.0",
+    "pylint==4.0.7",
+]
