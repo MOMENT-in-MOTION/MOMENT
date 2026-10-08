@@ -74,6 +74,12 @@ docs/build/
 docs/source/modules.rst
 docs/source/src*.rst
 
+# Local documentation preview and formatter tooling
+temp/
+node_modules/
+package.json
+package-lock.json
+
 # PyBuilder
 .pybuilder/
 target/

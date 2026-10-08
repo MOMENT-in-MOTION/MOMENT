@@ -51,7 +51,7 @@ class Descriptor(ABC):
     """
 
     @abstractmethod
-    def accpet(self, visitor: Visitor) -> None:
+    def accept(self, visitor: Visitor) -> None:
         pass
 
 
@@ -164,7 +164,7 @@ class FieldDescriptor(Descriptor):
             return self._render_list_default(self.default)
         return self._render_scalar_default(self.default)
 
-    def accpet(self, visitor: Visitor) -> None:
+    def accept(self, visitor: Visitor) -> None:
         visitor.visit_field(self)
 
     def _render_scalar_default(self, value: str) -> str:
@@ -204,8 +204,6 @@ class ClassDescriptor(Descriptor):
     Attributes:
         class_name:     The Python class name.
         fields:         Ordered list of field descriptors.
-        sorted_fields:  Fields ordered so required fields precede optional ones
-                        (a dataclass constraint).
     """
 
     class_name: str
@@ -255,7 +253,7 @@ class ClassDescriptor(Descriptor):
         """Required fields first, then fields with defaults."""
         return sorted(self.fields, key=lambda f: f.has_default)
 
-    def accpet(self, visitor: Visitor) -> None:
+    def accept(self, visitor: Visitor) -> None:
         visitor.visit_class(self)
 
 
@@ -287,7 +285,7 @@ class EnumDescriptor(Descriptor):
             enum_values[meta_enum_literal.name] = meta_enum_literal.value
         return cls(enum_name=enum.name, options=enum_values)
 
-    def accpet(self, visitor: Visitor) -> None:
+    def accept(self, visitor: Visitor) -> None:
         visitor.visit_enum(self)
 
 

@@ -28,7 +28,7 @@ jobs:
       - name: Build HTML Docs
         run: |
           cd docs
-          sphinx-apidoc --implicit-namespaces --force -o source/ ../src
+          sphinx-apidoc --implicit-namespaces --force --maxdepth 2 --templatedir source/_templates/apidoc -o source/ ../src
           sphinx-build -b html source/ build/html/
 
       - name: Upload Artifacts
