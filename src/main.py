@@ -39,6 +39,13 @@ def main():
         required=False
     )
     parser.add_argument(
+        "-c", "--config",
+        metavar="config_path",
+        type=Path,
+        default=CONFIG_PATH,
+        help="Path to the API configuration JSON file",
+    )
+    parser.add_argument(
         "-v", "--verbose",
         action="store_true",
         default=False,
@@ -57,7 +64,7 @@ def main():
     try:
         meta_model_dict = structure_data(load_json_as_dict(metamodel_dir))
 
-        api_config = load_json_as_dict(CONFIG_PATH)
+        api_config = load_json_as_dict(args.config)
         allow_unreachable = api_config.get("AllowUnreachableClasses", "false").lower() == "true"
         import_mode = api_config.get("ImportMode", "merge").lower()
 
@@ -91,7 +98,7 @@ def main():
             )
         else:
             raise ValueError(f"API configuration could not be loaded. "
-                                f"Please check the configuration file at this path: {CONFIG_PATH}")
+                                f"Please check the configuration file at this path: {args.config}")
     except (UnreachableClassError, ModelMergeError, IOError) as e:
         print(f"{type(e).__name__}: {e}", file=sys.stderr)
         sys.exit(1)

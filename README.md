@@ -26,10 +26,11 @@ The metamodel must be a `.json` file.
 
 ### Options
 
-| Option                        | Description                                                                 |
-|-------------------------------|-----------------------------------------------------------------------------|
-| `-o`, `--output <path>`       | Output directory for generated files (default: `project-root/output/`)      |
-| `-v`, `--verbose`             | Enables debug-level logging; defaults to info level                         |
+| Option                        | Description                                                                                       |
+|-------------------------------|---------------------------------------------------------------------------------------------------|
+| `-o`, `--output <path>`       | Output directory for generated files (default: `project-root/output/`)                            |
+| `-c`, `--config <path>`       | API configuration JSON file (default: `src/api_config.json` in the project)                       |
+| `-v`, `--verbose`             | Enables debug-level logging; defaults to info level                                                |
 
 ### Examples
 
@@ -37,6 +38,12 @@ Generate Python API code from a metamodel:
 
 ```bash
 python -m src.main path/to/metamodel.json
+```
+
+Use a different API configuration file with `--config`:
+
+```bash
+python -m src.main path/to/metamodel.json --config path/to/api_config.json
 ```
 
 ## Testing
