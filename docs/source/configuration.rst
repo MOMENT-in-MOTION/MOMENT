@@ -1,10 +1,17 @@
 Configuration
 =============
 
-MOMENT reads generation settings from ``src/api_config.json`` by default. Set
-the ``APP_CONFIG_PATH`` environment variable to use a different JSON
-configuration file. Paths are resolved from the process's current working
-directory.
+MOMENT reads generation settings from ``src/api_config.json`` by default. Use
+the ``-c`` or ``--config`` command-line option to select a different JSON
+configuration file:
+
+.. code-block:: console
+
+   python -m src.main path/to/metamodel.json --config path/to/api_config.json
+
+The default configuration path is resolved relative to the installed project;
+the path supplied with ``--config`` is resolved from the process's current
+working directory.
 
 The following table describes the values checked into the repository. Boolean
 settings are represented as the strings ``"true"`` and ``"false"``.

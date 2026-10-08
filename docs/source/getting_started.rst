@@ -31,4 +31,6 @@ package. Import and use the generated class from the repository root:
    print(library.get_name())
 
 Use ``-o`` or ``--output`` to choose another output directory. Add ``-v`` to
-enable verbose logging. Run ``python -m src.main --help`` for command-line help.
+enable verbose logging. Use ``-c`` or ``--config`` to select another API
+configuration JSON file. Run ``python -m src.main --help`` for command-line
+help.
