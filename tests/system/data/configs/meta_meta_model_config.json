@@ -1,0 +1,13 @@
+{
+    "GenerateGetters": "true",
+    "GenerateSetters": "true",
+    "GenerateConstructors": "true",
+    "GenerateHasFunctions": "true",
+    "StrictPrivacy": "false",
+    "UseDoubleUnderscore": "false",
+    "ExplicitTypeSafety": "true",
+    "NamingConvention": "snake_case",
+    "AllowUnreachableClasses": "true",
+    "RelativeImports": "true",
+    "Inheritance": "native"
+}

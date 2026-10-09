@@ -9,12 +9,20 @@ from typing import Any, Optional
 from enum import Enum
 
 # ---------------------------------------------------------------------------
-# Enumerations to be used in the MetaModel
+# Abstract base class
 # ---------------------------------------------------------------------------
 
 
+class MetaElement(ABC):
+    """Base class for all meta-model elements."""
+
+    @abstractmethod
+    def validate(self):
+        """Validate the element state."""
+
+
 @dataclass(eq=True)
-class Multiplicity:
+class Multiplicity(MetaElement):
     """
     Represents the multiplicity of an attribute or association.
 
@@ -34,6 +42,24 @@ class Multiplicity:
     def is_optional(self) -> bool:
         return self.lower == 0
 
+    def validate(self) -> None:
+        """Validate the multiplicity.
+
+        Raises:
+            ValueError: If lower is negative or upper is less than lower.
+        """
+        if self.lower < 0:
+            raise ValueError("Lower bound of multiplicity cannot be negative.")
+        if self.upper is not None and self.upper < self.lower:
+            raise ValueError(
+                "Upper bound of multiplicity cannot be less than lower bound."
+            )
+
+
+# ---------------------------------------------------------------------------
+# Enumerations to be used in the MetaModel
+# ---------------------------------------------------------------------------
+
 
 class AssociationOptions(str, Enum):
     """Association type options."""
@@ -48,19 +74,6 @@ class TypeOptions(str, Enum):
     INT = "int"
     BOOL = "bool"
     STRING = "str"
-
-
-# ---------------------------------------------------------------------------
-# Abstract base class
-# ---------------------------------------------------------------------------
-
-
-class MetaElement(ABC):
-    """Base class for all meta-model elements."""
-
-    @abstractmethod
-    def validate(self):
-        """Validate the element state."""
 
 
 # ---------------------------------------------------------------------------
