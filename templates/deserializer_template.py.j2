@@ -1,0 +1,218 @@
+{% extends "base_template.py.j2" %}
+
+{% block body %}
+{% if api_config.DeserializationFormat is none or api_config.DeserializationFormat | length == 0 %}
+{% set active_formats = [] %}
+{% else %}
+{% set active_formats = api_config.DeserializationFormat %}
+{% endif %}
+
+{% set use_json = "json" in active_formats %}
+{% set use_xml  = "xml"  in active_formats %}
+{% set has_serialization = active_formats | length > 0 %}
+{% set emit_helpers = api_config.GenerateConstructors == "true" %}
+{#- The decode helpers live here rather than in class_code so the generated
+    dataclasses stay free of deserialization plumbing. class_code imports them
+    at module level, so this module must not import class_code at module level
+    in return: the class is referenced only through a deferred import inside
+    from_text and through string annotations. -#}
+from __future__ import annotations
+{% if has_serialization %}
+{% if use_json %}
+import json
+{% endif %}
+{% if use_xml %}
+import xml.etree.ElementTree as ET
+{% endif %}
+from pathlib import Path
+{% if use_xml %}
+from typing import Any, TYPE_CHECKING
+{% else %}
+from typing import TYPE_CHECKING
+{% endif %}
+
+if TYPE_CHECKING:
+{% if api_config.RelativeImports == "true" %}
+    from .class_code import {{ classes[0].class_name }}
+{% else %}
+    from class_code import {{ classes[0].class_name }}
+{% endif %}
+
+
+_DESERIALIZER_DIR = Path(__file__).parent
+
+{% else %}
+
+{% endif %}
+{% if emit_helpers %}
+
+def _as_list(value, item_tag=None):
+    """Normalize a deserialized value into a list of elements."""
+    if value is None or value == "":
+        return []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, dict):
+        if item_tag is not None and len(value) == 1 and item_tag in value:
+            inner = value[item_tag]
+            return inner if isinstance(inner, list) else [inner]
+        return [value]
+    return [value]
+
+
+def _unwrap(value, wrapper_key):
+    """Strip the single-key wrapper the JSON serializer adds to list elements."""
+    if isinstance(value, dict) and len(value) == 1 and wrapper_key in value:
+        return value[wrapper_key]
+    return value
+
+
+def _blank_to_none(value):
+    """XML writes an absent optional field as an empty element; read it back as None."""
+    return None if value == "" else value
+
+
+def _build(target_cls, value):
+    """Rebuild a nested object from its dict form."""
+    if value is None or isinstance(value, target_cls):
+        return value
+    if hasattr(target_cls, "from_dict"):
+        return target_cls.from_dict(value)
+    return target_cls(**value)
+
+
+def _build_enum(enum_cls, value):
+    """Rebuild an enum member from the value the serializer wrote."""
+    if value is None or isinstance(value, enum_cls):
+        return value
+    return enum_cls(value)
+
+
+def _coerce_int(value):
+    """XML carries every scalar as text; restore the declared int type."""
+    if value is None or (isinstance(value, int) and not isinstance(value, bool)):
+        return value
+    return int(value)
+
+
+def _coerce_bool(value):
+    """XML carries every scalar as text; restore the declared bool type."""
+    if value is None or isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in ("true", "1", "yes")
+    return bool(value)
+
+
+def _coerce_str(value):
+    """XML carries every scalar as text; restore the declared str type."""
+    if value is None or isinstance(value, str):
+        return value
+    return str(value)
+
+{% endif %}
+{% if has_serialization %}
+{% if use_xml %}
+
+def _xml_to_dict(element: ET.Element) -> Any:
+    """
+    Convert an XML element into the nested dict shape that from_dict expects.
+
+    Repeated child tags collapse into a list. Leaf elements yield their text,
+    so every scalar arrives as a string; the generated from_dict restores the
+    declared type.
+    """
+    children = list(element)
+    if not children:
+        return element.text if element.text is not None else ""
+
+    result: dict = {}
+    for child in children:
+        value = _xml_to_dict(child)
+        if child.tag in result:
+            existing = result[child.tag]
+            if isinstance(existing, list):
+                existing.append(value)
+            else:
+                result[child.tag] = [existing, value]
+        else:
+            result[child.tag] = value
+    return result
+
+{% endif %}
+
+class Deserializer:
+    """
+    Generated deserializer for {{ classes[0].class_name }}.
+    Supported formats: {{ active_formats | join(", ") }}
+    """
+
+    @staticmethod
+    def from_text(fmt: str, text: str) -> {{ classes[0].class_name }}:
+        """
+        Rebuild a {{ classes[0].class_name }} from serialized text.
+
+        Args:
+            fmt: One of {{ active_formats | tojson }}.
+            text: The serialized document.
+        """
+        {% if api_config.RelativeImports == "true" %}
+        from .class_code import {{ classes[0].class_name }}
+        {% else %}
+        from class_code import {{ classes[0].class_name }}
+        {% endif %}
+
+        root_tag = "{{ classes[0].class_name }}"
+
+        {% for fmt_val in active_formats %}
+        {% if loop.first %}
+        if fmt == "{{ fmt_val }}":
+        {% else %}
+        elif fmt == "{{ fmt_val }}":
+        {% endif %}
+            {% if fmt_val == "json" %}
+            raw = json.loads(text)
+            data = raw.get(root_tag, raw) if isinstance(raw, dict) else raw
+            {% elif fmt_val == "xml" %}
+            data = _xml_to_dict(ET.fromstring(text))
+            {% endif %}
+        {% endfor %}
+        else:
+            raise ValueError(
+                f"Unsupported format: {fmt!r}. "
+                f"Supported: {{ active_formats | join(', ') }}"
+            )
+
+        return {{ classes[0].class_name }}.from_dict(data)
+
+    @staticmethod
+    def deserialize(
+        fmt: str,
+        input_path: str | Path | None = None,
+        file_name: str = "serialized_model"
+    ) -> {{ classes[0].class_name }}:
+        """
+        Read a serialized {{ classes[0].class_name }} from disk.
+
+        Mirrors Serializer.serialize: with no arguments beyond the format it
+        reads back the file that serialize wrote by default.
+
+        Args:
+            fmt: One of {{ active_formats | tojson }}.
+            input_path: A file, or a directory holding file_name. Defaults to
+                the deserializer's own directory.
+            file_name: Name of the input file. Defaults to 'serialized_model'.
+        """
+        candidate = Path(input_path) if input_path is not None else _DESERIALIZER_DIR
+        if candidate.is_dir():
+            _file_name = file_name if Path(file_name).suffix else f"{file_name}.{fmt}"
+            resolved_path = candidate / _file_name
+        else:
+            resolved_path = candidate
+
+        if not resolved_path.is_file():
+            raise FileNotFoundError(f"No serialized model at: {resolved_path}")
+
+        return Deserializer.from_text(fmt, resolved_path.read_text(encoding="utf-8"))
+{% endif %}
+{% endblock %}

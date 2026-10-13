@@ -1,0 +1,38 @@
+{#- Macros that build the per-field expressions used by the generated from_dict methods. -#}
+
+{#- Decode a single element of a field: enum member, nested object, or primitive. -#}
+{% macro decode_element(f, expr) -%}
+{%- if f.is_meta_enum -%}
+_build_enum({{ f.base_type }}, {{ expr }})
+{%- elif f.is_association -%}
+_build({{ f.base_type }}, {{ expr }})
+{%- elif f.base_type == "int" -%}
+_coerce_int({{ expr }})
+{%- elif f.base_type == "bool" -%}
+_coerce_bool({{ expr }})
+{%- elif f.base_type == "str" -%}
+_coerce_str({{ expr }})
+{%- else -%}
+{{ expr }}
+{%- endif -%}
+{%- endmacro %}
+
+{#- Build the constructor argument expression for a single field.
+    List elements carry a JSON wrapper key derived from the field name the
+    same way the serializer derives it, and an XML item tag equal to the
+    declared base type. -#}
+{% macro read_field(f) -%}
+{%- set local = "_v_" ~ f.field_name -%}
+{%- if f.multiplicity.is_list -%}
+{%- set wrapper = f.field_name.split('_') | map('capitalize') | join('') -%}
+{%- set element = decode_element(f, '_unwrap(_item, "' ~ wrapper ~ '")') -%}
+{%- set items = "[" ~ element ~ ' for _item in _as_list(' ~ local ~ ', "' ~ f.base_type ~ '")]' -%}
+{%- if f.multiplicity.is_optional -%}
+({{ items }} if {{ local }} is not None else None)
+{%- else -%}
+{{ items }}
+{%- endif -%}
+{%- else -%}
+{{ decode_element(f, local) }}
+{%- endif -%}
+{%- endmacro %}
