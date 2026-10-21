@@ -17,7 +17,6 @@ def run_app(tmp_path):
         input_path: Path,
         config_path: Path | None = None
     ) -> tuple[Path, subprocess.CompletedProcess]:
-        # overwrite the api_config in tests
         output_dir = tmp_path / "output"
         output_dir.mkdir()
 

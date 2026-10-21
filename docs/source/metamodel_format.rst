@@ -22,6 +22,6 @@ For a complete minimal example, see :download:`library.json
 .. literalinclude:: ../examples/library.json
    :language: json
 
-Enums contain a ``name`` and a list of string ``values``. The root class is the
-class named by the metamodel and is used to determine reachability when
-``AllowUnreachableClasses`` is disabled.
+Enums contain a ``name`` and a list of string ``values``. The first class in the
+``classes`` list is the root class. Reachability is determined from this class
+when ``AllowUnreachableClasses`` is disabled.

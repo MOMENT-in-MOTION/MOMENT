@@ -12,7 +12,6 @@ reference documents the Python implementation.
    getting_started
    metamodel_format
    configuration
-   building_docs
 
 .. toctree::
    :maxdepth: 2
@@ -20,4 +19,3 @@ reference documents the Python implementation.
 
    modules
    src.metamodel
-
