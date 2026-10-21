@@ -1,6 +1,7 @@
 {% extends "base_template.py.j2" %}
 {% from "macros/field_macro.j2" import render_field %}
 {% from "macros/type_safety.j2" import validate_field %}
+{% from "macros/deserialize_macro.j2" import read_field %}
 {'#- This template generates Python dataclasses based on the provided class descriptors. It can be configured using the api_config to conform to user specific api design preferences -#}
 {% block imports %}
 from __future__ import annotations
@@ -15,6 +16,31 @@ from .enum_code import *
 {% else %}
 from enum_code import *
 {% endif %}
+{% endif %}
+{% if api_config.GenerateConstructors == "true" %}
+{#- The decode helpers used by from_dict are generated into the deserializer
+    module, which deliberately does not import this one at module level. -#}
+{% if api_config.RelativeImports == "true" %}
+from .deserializer import (
+    _as_list,
+    _blank_to_none,
+    _build,
+    _build_enum,
+    _coerce_bool,
+    _coerce_int,
+    _coerce_str,
+    _unwrap,
+){% else %}
+from deserializer import (
+    _as_list,
+    _blank_to_none,
+    _build,
+    _build_enum,
+    _coerce_bool,
+    _coerce_int,
+    _coerce_str,
+    _unwrap,
+){% endif %}
 {% endif %}
 {% endblock %}
 
@@ -145,6 +171,35 @@ class {{ cls.class_name }}:
         {% endif %}
         {% endfor %}
         return result
+    {% if api_config.GenerateConstructors == "true" %}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> {{ cls.class_name }}:
+        """
+        Generated deserialization method for {{ cls.class_name }}
+
+        A field that declares a default is omitted when its key is absent, so
+        the constructor default applies. Required fields are always passed
+        through, letting the constructor report what is missing.
+        """
+        {% for f in cls.sorted_fields %}
+        {% if f.multiplicity.is_optional %}
+        _v_{{ f.field_name }} = _blank_to_none(data.get("{{ f.field_name }}"))
+        {% else %}
+        _v_{{ f.field_name }} = data.get("{{ f.field_name }}")
+        {% endif %}
+        {% endfor %}
+        _kwargs = {}
+        {% for f in cls.sorted_fields %}
+        {% if f.has_default %}
+        if "{{ f.field_name }}" in data:
+            _kwargs["{{ f.field_name }}"] = {{ read_field(f) }}
+        {% else %}
+        _kwargs["{{ f.field_name }}"] = {{ read_field(f) }}
+        {% endif %}
+        {% endfor %}
+        return cls(**_kwargs)
+    {% endif %}
 
 {% if not loop.last %}
 {% endif %}

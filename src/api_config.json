@@ -14,5 +14,9 @@
     "SerializationFormat": [
         "json",
         "xml"
+    ],
+    "DeserializationFormat": [
+        "json",
+        "xml"
     ]
 }
