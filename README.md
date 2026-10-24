@@ -32,10 +32,11 @@ The metamodel must be a `.json` file.
 
 ### Options
 
-| Option                        | Description                                                                 |
-|-------------------------------|-----------------------------------------------------------------------------|
-| `-o`, `--output <path>`       | Output directory for generated files (default: `project-root/output/`)      |
-| `-v`, `--verbose`             | Enables debug-level logging; defaults to info level                         |
+| Option                        | Description                                                                                       |
+|-------------------------------|---------------------------------------------------------------------------------------------------|
+| `-o`, `--output <path>`       | Output directory for generated files (default: `project-root/output/`)                            |
+| `-c`, `--config <path>`       | API configuration JSON file (default: `src/api_config.json` in the project)                       |
+| `-v`, `--verbose`             | Enables debug-level logging; defaults to info level                                                |
 
 ### Examples
 
@@ -43,6 +44,12 @@ Generate Python API code from a metamodel:
 
 ```bash
 python -m src.main path/to/metamodel.json
+```
+
+Use a different API configuration file with `--config`:
+
+```bash
+python -m src.main path/to/metamodel.json --config path/to/api_config.json
 ```
 
 ## Testing
@@ -212,3 +219,23 @@ In `import` mode, you can reference both local and external targets:
 
 Local references (without `import_link`) are automatically resolved within the model.
 External module references remain unresolved and will be imported at runtime.
+
+## Documentation (Developers)
+
+Install the documentation dependencies from the repository root:
+
+```bash
+python -m pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints
+```
+
+Generate API pages and build the HTML site:
+
+```bash
+cd docs
+sphinx-apidoc --implicit-namespaces --force --maxdepth 2 --templatedir source/_templates/apidoc -o source ../src
+sphinx-build -b html source build/html
+```
+
+The finished site is in `docs/build/html`. Open `index.html` through a local
+HTTP server to use Sphinx search reliably. Regenerate the API pages after
+changing the source package structure; CI performs both steps automatically.
