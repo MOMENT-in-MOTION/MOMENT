@@ -1,0 +1,34 @@
+{
+    "name": "Test",
+    "classes": [
+        {
+            "name": "Tester",
+            "attributes": [
+                {
+                    "name": "Name",
+                    "attribute_type": "STRING",
+                    "multiplicity": "[1]",
+                    "default_value": "root"
+                }
+            ],
+            "associations":[
+                {
+                    "name": "Test",
+                    "multiplicity": "[1]",
+                    "association_type": "REFERENCE",
+                    "target": "Test"
+                }
+            ]
+        },{
+            "name": "Test",
+            "attributes": [
+                {
+                    "name": "two_to_five_attributes",
+                    "attribute_type": "BOOL",
+                    "multiplicity": "[2..5]"
+                }
+            ],"associations":[
+            ]
+         }    
+    ]
+}

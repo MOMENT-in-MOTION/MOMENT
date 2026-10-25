@@ -45,44 +45,6 @@ Generate Python API code from a metamodel:
 python -m src.main path/to/metamodel.json
 ```
 
-## Testing
-
-Run all tests using pytest:
-
-```bash
-python -m pytest
-```
-
-Run a specific test file:
-
-```bash
-python -m pytest tests/codegenerator/test_codegenerator.py -v
-```
-
-### Code Coverage
-
-Run tests with coverage report:
-
-```bash
-python -m pytest --cov=src
-```
-
-Generate HTML coverage report:
-
-```bash
-python -m pytest --cov=src --cov-report=html
-```
-
-View the HTML report by opening `htmlcov/index.html` in your browser.
-
-## Linting
-
-This project uses pylint for code quality checks. Run pylint on the source and test files:
-
-```bash
-python -m pylint src/ tests/
-```
-
 ## API Configuration
 
 The generated API can be customized by modifying the configuration file located at `src/api_config.json`.
@@ -94,14 +56,19 @@ The generated API can be customized by modifying the configuration file located 
     "GenerateGetters": "true",
     "GenerateSetters": "true",
     "GenerateConstructors": "true",
+    "GenerateHasFunctions": "true",
     "StrictPrivacy": "true",
     "UseDoubleUnderscore": "false",
     "ExplicitTypeSafety": "true",
     "NamingConvention": "snake_case",
-    "AllowUnreachableClasses": "false",
+    "AllowUnreachableClasses": "true",
     "RelativeImports": "true",
     "Inheritance": "native",
-    "ImportMode": "merge"
+    "ImportMode": "merge",
+    "SerializationFormat": [
+        "json",
+        "xml"
+    ]
 }
 ```
 
@@ -110,11 +77,68 @@ The generated API can be customized by modifying the configuration file located 
 #### Code Generation
 
 Enable or disable the automatic creation of class methods using:
-- `GenerateGetters` - generates getter methods
-- `GenerateSetters` - generates setter methods
-- `GenerateConstructors` - generates constructor methods
+- `GenerateGetters` - generates getter methods for all fields
+- `GenerateSetters` - generates setter methods for all fields
+- `GenerateConstructors` - generates constructor methods for all fields
+- `GenerateHasFunctions` - generates Has-Functions for all fields
 
 Each accepts a string value of either "true" or "false".
+
+##### Getters  
+Getters will be generated following a template like so:
+```python
+def  get_test(self) -> Test:
+"""Generated getter for _test"""
+if  self._test  is  None:
+raise  ValueError("Field '_test' has not been initialized.")
+return  self._test
+```
+##### Setters
+Setters will be generated following a template like so:
+```python
+def  set_test(self, value: Test) -> None:
+"""
+Generated setter for _test
+
+Args:
+value: The new value to assign to the "_test" attribute
+"""
+if  not  isinstance(value, Test):
+raise  TypeError(
+f"Expected 'Test' for '_test', got {type(value).__name__!r}"
+)
+self._test  =  value
+```
+##### Constructors
+Constructors will be generated following a template like so:
+```python
+    def __init__(self, test: Test, name: str = "root") -> None:
+        """Generated constructor for Tester"""
+        if not isinstance(test, Test):
+            raise TypeError(
+                f"Expected 'Test' for '_test', got {type(test).__name__!r}"
+            )
+
+        self._test = test
+        if not isinstance(name, str):
+            raise TypeError(
+                f"Expected 'str' for '_name', got {type(name).__name__!r}"
+            )
+
+        self._name = name
+```
+##### Has-Functions
+Has-Functions will be generated following a template like so:
+```python
+    def has_test(self) -> bool:
+        """Generated has function for _test"""
+        if self._test is None:
+            return False
+        return True
+```
+##### StrictPrivacy
+
+adds leading underscores to fields. Can be configured to use double underscore with `UseDoubleUnderscore`
 
 #### Naming Convention
 
@@ -212,3 +236,46 @@ In `import` mode, you can reference both local and external targets:
 
 Local references (without `import_link`) are automatically resolved within the model.
 External module references remain unresolved and will be imported at runtime.
+
+
+## Testing
+
+Run all tests using pytest:
+
+```bash
+python -m pytest
+```
+
+Run a specific test file:
+
+```bash
+python -m pytest tests/codegenerator/test_codegenerator.py -v
+```
+
+### Code Coverage
+
+Run tests with coverage report:
+
+```bash
+python -m pytest --cov=src
+```
+
+Generate HTML coverage report:
+
+```bash
+python -m pytest --cov=src --cov-report=html
+```
+
+View the HTML report by opening `htmlcov/index.html` in your browser.
+
+## Linting
+
+This project uses pylint for code quality checks. Run pylint on the source and test files:
+
+```bash
+python -m pylint src/ tests/
+```
+
+## Licensing
+
+This project uses the BSD 3-Clause License.
