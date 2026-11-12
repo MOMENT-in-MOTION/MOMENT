@@ -2,7 +2,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import os
 import pytest
 
 
@@ -18,11 +17,6 @@ def run_app(tmp_path):
         input_path: Path,
         config_path: Path | None = None
     ) -> tuple[Path, subprocess.CompletedProcess]:
-        # overwrite the api_config in tests
-        env = os.environ.copy()
-        if config_path is not None:
-            env["APP_CONFIG_PATH"] = str(config_path)
-
         output_dir = tmp_path / "output"
         output_dir.mkdir()
 
@@ -31,7 +25,10 @@ def run_app(tmp_path):
             str(input_path),
             "--output", str(output_dir),
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True, env=env, check=False)
+        if config_path is not None:
+            cmd.extend(["--config", str(config_path)])
+
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
         return output_dir, result
 
     return _run

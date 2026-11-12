@@ -1,0 +1,17 @@
+{
+    "name": "Library",
+    "classes": [
+        {
+            "name": "Library",
+            "attributes": [
+                {
+                    "name": "Name",
+                    "attribute_type": "STRING",
+                    "multiplicity": "[1]"
+                }
+            ],
+            "associations": [],
+            "inherits": []
+        }
+    ]
+}
