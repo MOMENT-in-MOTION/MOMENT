@@ -15,7 +15,7 @@ SNAPSHOT_ROOT = PROJECT_ROOT / "tests" / "system" / "data" / "snapshots"
 
 
 def _write_api_config(tmp_path: Path, **overrides) -> Path:
-    """Create a temporary API config that the CLI will read through APP_CONFIG_PATH."""
+    """Create a temporary API config for the CLI."""
     config = DEFAULT_CONFIG.copy()
     config.update(overrides)
     config_path = tmp_path / "api_config.json"

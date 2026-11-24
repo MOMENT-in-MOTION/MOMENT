@@ -1,0 +1,242 @@
+{
+    "name": "MetaMetaModel",
+    "classes": [
+        {
+            "name": "MetaElement",
+            "attributes": [],
+            "associations": []
+        },
+        {
+            "name": "Multiplicity",
+            "inherits": [],
+            "attributes": [
+                {
+                    "name": "lower",
+                    "attribute_type": "INT",
+                    "multiplicity": "[1..1]",
+                    "default_value": 0
+                },
+                {
+                    "name": "upper",
+                    "attribute_type": "INT",
+                    "multiplicity": "[0..1]"
+                }
+            ],
+            "associations": []
+        },
+        {
+            "name": "MetaEnumLiteral",
+            "inherits": ["MetaElement"],
+            "attributes": [
+                {
+                    "name": "name",
+                    "attribute_type": "STRING",
+                    "multiplicity": "[1..1]"
+                },
+                {
+                    "name": "value",
+                    "attribute_type": "STRING",
+                    "multiplicity": "[1..1]"
+                }
+            ],
+            "associations": []
+        },
+        {
+            "name": "MetaEnum",
+            "inherits": ["MetaElement"],
+            "attributes": [
+                {
+                    "name": "name",
+                    "attribute_type": "STRING",
+                    "multiplicity": "[1..1]"
+                }
+            ],
+            "associations": [
+                {
+                    "name": "values",
+                    "multiplicity": "[0..*]",
+                    "association_type": "COMPOSITION",
+                    "target": "MetaEnumLiteral"
+                }
+            ]
+        },
+        {
+            "name": "Attribute",
+            "inherits": ["MetaElement"],
+            "attributes": [
+                {
+                    "name": "name",
+                    "attribute_type": "STRING",
+                    "multiplicity": "[1..1]"
+                },
+                {
+                    "name": "default_value",
+                    "attribute_type": "STRING",
+                    "multiplicity": "[0..1]"
+                }
+            ],
+            "associations": [
+                {
+                    "name": "multiplicity",
+                    "multiplicity": "[1..1]",
+                    "association_type": "COMPOSITION",
+                    "target": "Multiplicity"
+                },
+                {
+                    "name": "attribute_type",
+                    "multiplicity": "[1..1]",
+                    "association_type": "REFERENCE",
+                    "target": "MetaEnumLiteral"
+                }
+            ]
+        },
+        {
+            "name": "Association",
+            "inherits": ["MetaElement"],
+            "attributes": [
+                {
+                    "name": "name",
+                    "attribute_type": "STRING",
+                    "multiplicity": "[1..1]"
+                },
+                {
+                    "name": "import_link",
+                    "attribute_type": "STRING",
+                    "multiplicity": "[0..1]"
+                },
+                {
+                    "name": "default_value",
+                    "attribute_type": "STRING",
+                    "multiplicity": "[0..1]"
+                }
+            ],
+            "associations": [
+                {
+                    "name": "multiplicity",
+                    "multiplicity": "[1..1]",
+                    "association_type": "COMPOSITION",
+                    "target": "Multiplicity"
+                },
+                {
+                    "name": "association_type",
+                    "multiplicity": "[1..1]",
+                    "association_type": "REFERENCE",
+                    "target": "AssociationOptions"
+                },
+                {
+                    "name": "association_target",
+                    "multiplicity": "[1..1]",
+                    "association_type": "COMPOSITION",
+                    "target": "MetaClass"
+                }
+            ]
+        },
+        {
+            "name": "OpenAssociation",
+            "inherits": ["MetaElement"],
+            "attributes": [
+                {
+                    "name": "name",
+                    "attribute_type": "STRING",
+                    "multiplicity": "[1..1]"
+                },
+                {
+                    "name": "association_target_name",
+                    "attribute_type": "STRING",
+                    "multiplicity": "[1..1]"
+                },
+                {
+                    "name": "import_link",
+                    "attribute_type": "STRING",
+                    "multiplicity": "[0..1]"
+                },
+                {
+                    "name": "default_value",
+                    "attribute_type": "STRING",
+                    "multiplicity": "[0..1]"
+                }
+            ],
+            "associations": [
+                {
+                    "name": "multiplicity",
+                    "multiplicity": "[1..1]",
+                    "association_type": "COMPOSITION",
+                    "target": "Multiplicity"
+                },
+                {
+                    "name": "association_type",
+                    "multiplicity": "[1..1]",
+                    "association_type": "REFERENCE",
+                    "target": "AssociationOptions"
+                }
+            ]
+        },
+        {
+            "name": "MetaClass",
+            "inherits": ["MetaElement"],
+            "attributes": [
+                {
+                    "name": "name",
+                    "attribute_type": "STRING",
+                    "multiplicity": "[1..1]"
+                },
+                {
+                    "name": "inherits",
+                    "attribute_type": "STRING",
+                    "multiplicity": "[0..*]",
+                    "default_value": []
+                }
+            ],
+            "associations": [
+                {
+                    "name": "attributes",
+                    "multiplicity": "[0..*]",
+                    "association_type": "COMPOSITION",
+                    "target": "Attribute"
+                },
+                {
+                    "name": "associations",
+                    "multiplicity": "[0..*]",
+                    "association_type": "COMPOSITION",
+                    "target": "Association"
+                }
+            ]
+        },
+        {
+            "name": "MetaModel",
+            "inherits": ["MetaElement"],
+            "attributes": [
+                {
+                    "name": "name",
+                    "attribute_type": "STRING",
+                    "multiplicity": "[1..1]",
+                    "default_value": "root"
+                }
+            ],
+            "associations": [
+                {
+                    "name": "classes",
+                    "multiplicity": "[0..*]",
+                    "association_type": "COMPOSITION",
+                    "target": "MetaClass"
+                },
+                {
+                    "name": "enums",
+                    "multiplicity": "[0..*]",
+                    "association_type": "COMPOSITION",
+                    "target": "MetaEnum"
+                }
+            ]
+        }
+    ],
+    "enums": [
+        {
+            "name": "AssociationOptions",
+            "values": ["COMPOSITION", "REFERENCE"]
+        },
+        {
+            "name": "TypeOptions",
+            "values": ["INT", "BOOL", "STRING"]
+        }
+    ]
+}

@@ -1,6 +1,5 @@
 import logging
 import re
-from sre_constants import RANGE
 from typing import TypeVar
 from enum import Enum
 from pathlib import Path

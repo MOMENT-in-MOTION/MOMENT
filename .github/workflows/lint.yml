@@ -13,16 +13,15 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v4
- 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
-          python-version: "3.12"
+          # Install a specific version of uv.
+          version: "0.12.7"
  
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install pylint
+        run: uv sync
  
       - name: Run pylint
         run: |
@@ -38,12 +37,12 @@ jobs:
 
           if [ -n "$src_files" ]; then
             echo "Linting src/..."
-            python -m pylint --source-roots=. src/ || exit_code=$?
+            uv run pylint --source-roots=. src/ || exit_code=$?
           fi
 
           if [ -n "$test_files" ]; then
             echo "Linting tests/..."
-            python -m pylint --source-roots=. tests/ || exit_code=$?
+            uv run pylint --source-roots=. tests/ || exit_code=$?
           fi
 
           exit $exit_code
