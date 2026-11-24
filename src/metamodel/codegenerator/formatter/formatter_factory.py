@@ -1,6 +1,7 @@
 from .camel_case_formatter import CamelCaseFormatter
 from .snake_case_formatter import SnakeCaseFormatter
 from .formatter import Formatter
+from ..exceptions import ConfigurationError
 
 def get_formatter(format_style: str) -> Formatter:
     """
@@ -13,7 +14,7 @@ def get_formatter(format_style: str) -> Formatter:
         An instance of a concrete Formatter strategy.
 
     Raises:
-        ValueError: If `format_style` does not match any registered formatter.
+        ConfigurationError: If `format_style` does not match any registered formatter.
     """
     formatters = {
         "snake_case": SnakeCaseFormatter(),
@@ -22,6 +23,6 @@ def get_formatter(format_style: str) -> Formatter:
     formatter = formatters.get(format_style)
 
     if formatter is None:
-        raise ValueError(f"Unknown format style: '{format_style}'")
+        raise ConfigurationError(f"Unknown format style: '{format_style}'")
 
     return formatter

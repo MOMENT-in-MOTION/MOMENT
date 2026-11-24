@@ -17,11 +17,10 @@ from .enum_code import *
 from enum_code import *
 {% endif %}
 {% endif %}
-{% if api_config.GenerateConstructors == "true" %}
+{% if api_config.GenerateConstructors == "true" and api_config.get("DeserializationFormat") and api_config.get("DeserializationFormat")|length > 0 %}
 {#- The decode helpers used by from_dict are generated into the deserializer
     module, which deliberately does not import this one at module level. -#}
-{% if api_config.RelativeImports == "true" %}
-from .deserializer import (
+from {{ "." if api_config.RelativeImports == "true" else "" }}deserializer import (
     _as_list,
     _blank_to_none,
     _build,
@@ -30,17 +29,7 @@ from .deserializer import (
     _coerce_int,
     _coerce_str,
     _unwrap,
-){% else %}
-from deserializer import (
-    _as_list,
-    _blank_to_none,
-    _build,
-    _build_enum,
-    _coerce_bool,
-    _coerce_int,
-    _coerce_str,
-    _unwrap,
-){% endif %}
+)
 {% endif %}
 {% endblock %}
 
@@ -171,7 +160,7 @@ class {{ cls.class_name }}:
         {% endif %}
         {% endfor %}
         return result
-    {% if api_config.GenerateConstructors == "true" %}
+    {% if api_config.GenerateConstructors == "true" and api_config.get("DeserializationFormat") and api_config.get("DeserializationFormat")|length > 0 %}
 
     @classmethod
     def from_dict(cls, data: dict) -> {{ cls.class_name }}:
