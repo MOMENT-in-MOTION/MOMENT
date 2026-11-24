@@ -62,6 +62,15 @@ settings are represented as the strings ``"true"`` and ``"false"``.
    * - ``SerializationFormat``
      - ``["json", "xml"]``
      - Enable serializer generation for the listed formats.
+   * - ``DeserializationFormat``
+     - ``["json", "xml"]``
+     - Enable deserializer and ``from_dict`` generation for the listed formats.
+       Requires ``GenerateConstructors`` to be ``"true"``.
+
+An omitted, null, or empty ``DeserializationFormat`` disables deserialization,
+even when ``SerializationFormat`` is configured. Otherwise the setting must be
+a list. Configurations that previously relied on serialization formats being
+used implicitly must specify ``DeserializationFormat`` explicitly.
 
 When using ``merge``, ``import_link`` values refer to JSON submodels. In
 ``import`` mode, they refer to external Python modules. The two forms are not

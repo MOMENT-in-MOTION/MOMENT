@@ -1,4 +1,6 @@
 import ast
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -70,3 +72,28 @@ class TestBasicClass:
             name_field.value.value, str
         )
         assert name_field.value.value == "default"
+
+    def test_generated_serializer_and_deserializer_round_trip(self, run_app):
+        output_dir, proc = run_app(Path("tests/system/data/basic_metamodel.json"))
+        assert proc.returncode == 0, proc.stderr
+
+        script = """
+from pathlib import Path
+from output.class_code import MyGeneratedClass
+from output.deserializer import Deserializer
+from output.serializer import Serializer
+
+original = MyGeneratedClass(name="example")
+for fmt in ("json", "xml"):
+    Serializer(original).serialize(fmt, output_path=Path.cwd())
+    text = Path(f"serialized_model.{fmt}").read_text(encoding="utf-8")
+    assert Deserializer.from_text(fmt, text).to_dict() == original.to_dict()
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            cwd=output_dir.parent,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, result.stderr

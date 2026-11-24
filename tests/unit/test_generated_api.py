@@ -7,6 +7,7 @@ import pytest
 
 from src.metamodel.codegenerator.codegenerator import generate_meta_model_api
 from src.metamodel.codegenerator.formatter import get_formatter
+from src.metamodel.codegenerator.exceptions import ConfigurationError
 from src.metamodel.merger import UnreachableClassError, merge_meta_models
 from src.metamodel.parser.meta_model_parser import parse_meta_model
 from src.shared.load_json_as_dict import load_json_as_dict
@@ -103,6 +104,39 @@ def generated_code(simple_model, default_config, formatter, tmp_path):
 
 class TestCodeGeneration:
     """Core checks for code generation behavior."""
+
+    @pytest.mark.parametrize(
+        "overrides",
+        [
+            {},
+            {"DeserializationFormat": []},
+            {"SerializationFormat": ["json"]},
+            {"SerializationFormat": ["json"], "DeserializationFormat": []},
+        ],
+    )
+    def test_deserialization_is_disabled_without_formats(
+        self, simple_model, default_config, formatter, overrides
+    ):
+        """Do not generate deserialization code without an explicit format."""
+        default_config.update(overrides)
+        result = generate_api_code(simple_model, default_config, formatter)
+
+        assert "deserializer" not in result
+        assert "def from_dict(" not in result["class_code"]
+        assert "deserializer import" not in result["class_code"]
+        assert ("serializer" in result) == ("SerializationFormat" in overrides)
+
+    def test_deserialization_can_be_enabled_without_serialization(
+        self, simple_model, default_config, formatter
+    ):
+        """Generate deserialization independently of serialization."""
+        default_config["DeserializationFormat"] = ["json"]
+        result = generate_api_code(simple_model, default_config, formatter)
+
+        assert "deserializer" in result
+        assert "serializer" not in result
+        assert "def from_dict(" in result["class_code"]
+        assert "from .deserializer import" in result["class_code"]
 
     def test_generate_meta_model_api_returns_expected_structure(
         self, simple_model, default_config, formatter, tmp_path
@@ -284,8 +318,8 @@ class TestCodeGeneration:
         assert expected in code
 
     def test_unknown_format_style_raises_value_error(self):
-        """Verify ValueError is raised for unsupported naming conventions."""
-        with pytest.raises(ValueError, match="PascalCase"):
+        """Verify ConfigurationError is raised for unsupported naming conventions."""
+        with pytest.raises(ConfigurationError, match="PascalCase"):
             get_formatter("PascalCase")
 
     def test_default_config_uses_string_truth_values(self, default_config):

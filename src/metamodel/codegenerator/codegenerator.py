@@ -7,6 +7,7 @@ from ...config import TEMPLATES_DIR
 from .jinja_engine import render, build_engine
 from .mapper import TemplateContext
 from .formatter import Formatter
+from .exceptions import ConfigurationError
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +62,27 @@ def generate_meta_model_api(
     Returns:
         A dictionary with keys "dataclass_code" and "enum_code" containing
         the rendered source code strings.
+
+    Raises:
+        ConfigurationError: If DeserializationFormat is not a list, or is configured
+            but GenerateConstructors is false.
     """
+    # Validate precondition: from_dict deserialization requires a generated constructor
+    deserialization_fmt = api_config.get("DeserializationFormat")
+    if deserialization_fmt is not None and not isinstance(deserialization_fmt, list):
+        raise ConfigurationError("DeserializationFormat must be a list.")
+    has_deserialization_fmt = isinstance(deserialization_fmt, list) and bool(
+        deserialization_fmt
+    )
+    if (
+        has_deserialization_fmt
+        and api_config.get("GenerateConstructors") != "true"
+    ):
+        raise ConfigurationError(
+            "DeserializationFormat is configured but GenerateConstructors is false. "
+            "from_dict deserialization requires a generated constructor to work."
+        )
+
     j2_engine = build_engine(templates_dir)
     import_mode = str(api_config.get("ImportMode", "merge")).lower()
     context = TemplateContext.from_meta_model(
@@ -104,32 +125,13 @@ def _render_templates(j2_engine, context_dict: dict) -> dict[str, str]:
             j2_engine, "serializer_template.py.j2", context_dict
         )
 
-    deserialization_fmt = context_dict.get("api_config", {}).get(
-        "DeserializationFormat", serialization_fmt
-    )
-    has_deserialization_fmt = bool(
+    deserialization_fmt = context_dict.get("api_config", {}).get("DeserializationFormat")
+    has_deserialization_fmt = isinstance(deserialization_fmt, list) and bool(
         deserialization_fmt
-        and isinstance(deserialization_fmt, list)
-        and len(deserialization_fmt) > 0
     )
-    # The decode helpers that class_code's from_dict imports are generated into
-    # the deserializer module, so it is needed whenever constructors are
-    # generated, even with no deserialization format configured.
-    needs_decode_helpers = (
-        context_dict.get("api_config", {}).get("GenerateConstructors") == "true"
-    )
-    if has_deserialization_fmt or needs_decode_helpers:
-        deserializer_context = {
-            **context_dict,
-            "api_config": {
-                **context_dict.get("api_config", {}),
-                "DeserializationFormat": (
-                    deserialization_fmt if has_deserialization_fmt else []
-                ),
-            },
-        }
+    if has_deserialization_fmt:
         result["deserializer"] = render(
-            j2_engine, "deserializer_template.py.j2", deserializer_context
+            j2_engine, "deserializer_template.py.j2", context_dict
         )
 
     return result

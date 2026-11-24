@@ -11,13 +11,12 @@ from src.metameta.m_m_m_classes import (
     Attribute,
     Association,
     TypeOptions,
-    Multiplicity
+    Multiplicity,
 )
 
-from src.metamodel.codegenerator.codegenerator import (
-    generate_meta_model_api
-)
+from src.metamodel.codegenerator.codegenerator import generate_meta_model_api
 from src.metamodel.codegenerator.formatter import get_formatter
+from src.metamodel.codegenerator.exceptions import ConfigurationError
 
 
 @pytest.fixture
@@ -88,6 +87,24 @@ def meta_model_with_associations(simple_meta_class, simple_meta_enum):
 class TestCodeGeneratorIntegration:
     """Integration tests for the code generation workflow."""
 
+    @pytest.mark.parametrize("deserialization_format", ["json", {"json": True}])
+    def test_deserialize_format_requires_a_list(
+        self, meta_model_with_associations, deserialization_format
+    ):
+        api_config = {
+            "NamingConvention": "snake_case",
+            "DeserializationFormat": deserialization_format,
+            "GenerateConstructors": "true",
+        }
+
+        with pytest.raises(ConfigurationError, match="DeserializationFormat must be a list"):
+            generate_meta_model_api(
+                meta_model=meta_model_with_associations,
+                api_config=api_config,
+                formatter=get_formatter(api_config["NamingConvention"]),
+                templates_dir=Path("templates"),
+            )
+
     def test_generate_meta_model_api_returns_dict_with_keys(
         self, meta_model_with_associations
     ):
@@ -117,3 +134,40 @@ class TestCodeGeneratorIntegration:
             assert "enum_code" in result
             assert isinstance(result["class_code"], str)
             assert isinstance(result["enum_code"], str)
+
+    def test_deserialize_format_requires_constructors(
+        self, meta_model_with_associations
+    ):
+        """Test that DeserializationFormat requires GenerateConstructors to be true."""
+        with TemporaryDirectory() as tmpdir:
+            templates_dir = Path(tmpdir)
+            # Create dummy template files
+            (templates_dir / "class_template.py.j2").write_text(
+                "# Class Template\n{{ classes }}"
+            )
+            (templates_dir / "enum_template.py.j2").write_text(
+                "# Enum Template\n{{ enums }}"
+            )
+
+            api_config = {
+                "NamingConvention": "snake_case",
+                "DeserializationFormat": ["json"],
+                "GenerateConstructors": "false",
+            }
+            formatter = get_formatter(api_config["NamingConvention"])
+
+            with pytest.raises(
+                ConfigurationError,
+                match="from_dict deserialization requires a generated constructor",
+            ):
+                generate_meta_model_api(
+                    meta_model=meta_model_with_associations,
+                    api_config=api_config,
+                    formatter=formatter,
+                    templates_dir=templates_dir,
+                )
+
+    def test_invalid_formatter_style_raises_configuration_error(self):
+        """Test that invalid formatter style raises ConfigurationError."""
+        with pytest.raises(ConfigurationError, match="Unknown format style"):
+            get_formatter("invalid_style")
